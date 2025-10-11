@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -49,7 +50,17 @@ export function Sidebar({ user }: SidebarProps) {
     <div className="w-64 bg-gray-900 text-white flex flex-col h-screen">
       {/* Header */}
       <div className="p-6 border-b border-gray-800">
-        <h1 className="text-xl font-bold">Inventario Noemí</h1>
+        <div className="flex items-center gap-3">
+          <div className="relative w-10 h-10 flex-shrink-0">
+            <Image
+              src="/images/logo2.png"
+              alt="Logo Noemí"
+              fill
+              className="object-contain"
+            />
+          </div>
+          <h1 className="text-xl font-bold">Inventario Noemí</h1>
+        </div>
         <div className="mt-3 flex items-center gap-2 text-sm text-gray-400">
           <User className="w-4 h-4" />
           <span>{user.nombre || user.nombre_usuario}</span>

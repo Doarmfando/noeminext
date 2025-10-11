@@ -6,7 +6,8 @@
       "Bash(if exist .env.local echo .env.local exists)",
       "Bash(if exist middleware.ts echo middleware.ts exists)",
       "Bash(test:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Read(//c/Users/Brando/Documents/Working/Noemí/**)"
     ],
     "deny": [],
     "ask": []
