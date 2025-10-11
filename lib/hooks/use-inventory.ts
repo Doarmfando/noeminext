@@ -355,6 +355,41 @@ export function useProductContainers(productoId: string) {
   })
 }
 
+// Hook para obtener el precio real de un producto en un contenedor
+export function useProductContainerPrice(productoId: string, contenedorId: string) {
+  const supabase = createClient()
+
+  return useQuery({
+    queryKey: ['product-container-price', productoId, contenedorId],
+    queryFn: async () => {
+      if (!productoId || !contenedorId) return null
+
+      // Obtener todos los lotes del producto en ese contenedor
+      const { data: lotes, error } = await supabase
+        .from('detalle_contenedor')
+        .select('cantidad, precio_real_unidad')
+        .eq('producto_id', productoId)
+        .eq('contenedor_id', contenedorId)
+        .eq('visible', true)
+
+      if (error) throw error
+      if (!lotes || lotes.length === 0) return null
+
+      // Calcular precio promedio ponderado
+      const cantidadTotal = lotes.reduce((sum, lote) => sum + (lote.cantidad || 0), 0)
+      const valorTotal = lotes.reduce((sum, lote) => {
+        const precio = lote.precio_real_unidad || 0
+        return sum + (lote.cantidad || 0) * precio
+      }, 0)
+
+      const precioPromedio = cantidadTotal > 0 ? valorTotal / cantidadTotal : null
+
+      return precioPromedio
+    },
+    enabled: !!productoId && !!contenedorId,
+  })
+}
+
 // Datos para actualizar producto
 export interface UpdateProductData {
   id: string

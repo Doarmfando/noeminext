@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { login } from '@/lib/auth/actions'
 import { User, Lock, Eye, EyeOff } from 'lucide-react'
 import CirclesBackground from '@/components/auth/CirclesBackground'
@@ -9,6 +10,7 @@ import RestaurantLogo from '@/components/auth/RestaurantLogo'
 import FooterBanner from '@/components/auth/FooterBanner'
 
 export default function LoginPage() {
+  const router = useRouter()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -23,16 +25,22 @@ export default function LoginPage() {
     try {
       if (!username.trim() || !password) {
         setError('Por favor ingresa usuario/email y contraseña')
+        setLoading(false)
         return
       }
 
       const result = await login(username.trim(), password)
+
       if (result?.error) {
         setError(result.error)
+        setLoading(false)
+      } else if (result?.success) {
+        // Login exitoso, redirigir al dashboard
+        router.push('/dashboard')
+        router.refresh()
       }
     } catch (err) {
       setError('Error al iniciar sesión')
-    } finally {
       setLoading(false)
     }
   }

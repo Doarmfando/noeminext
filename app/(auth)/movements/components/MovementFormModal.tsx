@@ -39,7 +39,10 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
   const [numeroEmpaquetados, setNumeroEmpaquetados] = useState<number>(1)
   const [unidadesPorEmpaquetado, setUnidadesPorEmpaquetado] = useState<number>(0)
   const [empaquetadosASacar, setEmpaquetadosASacar] = useState<number>(0)
+  const [empaquetadosAIngresar, setEmpaquetadosAIngresar] = useState<number>(0)
   const [fechaVencimiento, setFechaVencimiento] = useState<string>('')
+  const [precioOriginalLote, setPrecioOriginalLote] = useState<number | null>(null)
+  const [fechaOriginalLote, setFechaOriginalLote] = useState<string>('')
 
   // Obtener contenedores y precio del producto seleccionado
   const { data: productContainers } = useProductContainers(formData.producto_id || '')
@@ -51,15 +54,22 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
   // Obtener lotes del producto en el contenedor seleccionado
   const { data: productLots = [] } = useProductLots(formData.producto_id, formData.contenedor_id)
 
-  // Auto-rellenar precio estimado como precio real
+  // Obtener el lote seleccionado
+  const loteActual = productLots.find((l: any) => l.id === loteSeleccionado)
+
+  // Auto-rellenar precio estimado cuando selecciona producto (antes de seleccionar lote)
   useEffect(() => {
-    if (selectedProduct?.precio_estimado && formData.precio_real === 0) {
+    // No auto-rellenar si hay un lote seleccionado (el useEffect del lote se encarga)
+    if (loteSeleccionado) return
+
+    // Solo usar precio estimado hasta que seleccione un lote
+    if (selectedProduct?.precio_estimado) {
       setFormData(prev => ({
         ...prev,
         precio_real: selectedProduct.precio_estimado,
       }))
     }
-  }, [selectedProduct, formData.precio_real])
+  }, [selectedProduct?.id, selectedProduct?.precio_estimado, loteSeleccionado])
 
   // Auto-seleccionar contenedor fijo
   useEffect(() => {
@@ -70,6 +80,37 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
       }))
     }
   }, [formData.producto_id, productContainers])
+
+  // Auto-rellenar datos del lote seleccionado
+  useEffect(() => {
+    if (loteActual) {
+      // Guardar valores originales del lote
+      const precioLote = parseFloat(loteActual.precio_real_unidad) || 0
+      const fechaLote = loteActual.fecha_vencimiento || ''
+
+      setPrecioOriginalLote(precioLote)
+      setFechaOriginalLote(fechaLote)
+
+      // Auto-rellenar precio
+      setFormData(prev => ({
+        ...prev,
+        precio_real: precioLote,
+      }))
+
+      // Auto-rellenar fecha de vencimiento
+      setFechaVencimiento(fechaLote)
+    } else {
+      // Limpiar cuando no hay lote seleccionado
+      setPrecioOriginalLote(null)
+      setFechaOriginalLote('')
+    }
+  }, [loteActual])
+
+  // Detectar si se modificaron datos del lote (con comparación tolerante para decimales)
+  const precioModificado = loteActual && precioOriginalLote !== null &&
+    Math.abs((formData.precio_real || 0) - precioOriginalLote) > 0.01
+  const fechaModificada = loteActual && fechaOriginalLote && fechaVencimiento !== fechaOriginalLote
+  const datosDelLoteModificados = precioModificado || fechaModificada
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -91,13 +132,41 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
       return
     }
 
+    // Preparar observación adicional para SALIDA si cambió el precio
+    let observacionFinal = formData.observacion || ''
+    if (formData.tipo_movimiento === 'salida' && precioModificado && precioOriginalLote !== null) {
+      const notaPrecio = `[Precio del lote original: S/.${precioOriginalLote.toFixed(2)}, cambió a: S/.${(formData.precio_real || 0).toFixed(2)}]`
+      observacionFinal = observacionFinal ? `${observacionFinal}\n${notaPrecio}` : notaPrecio
+    }
+
+    // Advertir si se modificaron datos del lote y es una entrada
+    if (formData.tipo_movimiento === 'entrada' && datosDelLoteModificados) {
+      const confirmar = confirm(
+        '⚠️ Modificaste el precio o la fecha del lote.\n\n' +
+        'Se creará un NUEVO LOTE con estos datos modificados.\n\n' +
+        '¿Deseas continuar?'
+      )
+      if (!confirmar) return
+    }
+
     try {
-      await createMutation.mutateAsync({
+      // Determinar si se va a crear un nuevo lote
+      const crearNuevoLote = formData.tipo_movimiento === 'entrada' && (!loteSeleccionado || datosDelLoteModificados)
+
+      const dataToSend = {
         ...formData,
-        lote_id: loteSeleccionado || undefined,
-        numero_empaquetados: formData.tipo_movimiento === 'entrada' ? numeroEmpaquetados : undefined,
-        fecha_vencimiento: formData.tipo_movimiento === 'entrada' && fechaVencimiento ? fechaVencimiento : undefined,
-      } as CreateMovementData)
+        observacion: observacionFinal,
+        // Solo crear nuevo lote en ENTRADA si se modificaron datos o no hay lote seleccionado
+        lote_id: (formData.tipo_movimiento === 'entrada' && datosDelLoteModificados) ? undefined : (loteSeleccionado || undefined),
+        // Solo enviar numero_empaquetados cuando se va a crear un nuevo lote
+        numero_empaquetados: crearNuevoLote ? numeroEmpaquetados : undefined,
+        // Solo enviar fecha_vencimiento cuando se va a crear un nuevo lote
+        fecha_vencimiento: crearNuevoLote && fechaVencimiento ? fechaVencimiento : undefined,
+        // IMPORTANTE: Siempre enviar precio_real para el movimiento, pero con flag para no sobrescribir lote
+        actualizar_precio_lote: precioModificado, // Flag para indicar si se debe actualizar el precio del lote
+      }
+
+      await createMutation.mutateAsync(dataToSend as CreateMovementData)
       onSuccess()
     } catch (error: any) {
       console.error('Error creating movement:', error)
@@ -253,9 +322,20 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
                     : 'Seleccionar Lote (Opcional)'
                   }
                 </h3>
-                <span className="text-xs text-purple-600 font-medium">
-                  {productLots.length} lote{productLots.length > 1 ? 's' : ''}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-purple-600 font-medium">
+                    {productLots.length} lote{productLots.length > 1 ? 's' : ''}
+                  </span>
+                  {loteSeleccionado && (
+                    <button
+                      type="button"
+                      onClick={() => setLoteSeleccionado('')}
+                      className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                    >
+                      ✕ Quitar selección
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -458,35 +538,153 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
             </div>
           )}
 
-          {/* Cantidad simple para ENTRADA */}
-          {formData.tipo_movimiento === 'entrada' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Cantidad Total *
-                {selectedProduct && (
-                  <span className="text-xs text-gray-500 ml-1">
-                    ({(selectedProduct as any).unidades_medida?.nombre || 'unidades'})
-                  </span>
-                )}
-              </label>
-              <input
-                type="number"
-                required
-                min="0.01"
-                step="0.01"
-                value={formData.cantidad || ''}
-                onChange={e =>
-                  setFormData({ ...formData, cantidad: parseFloat(e.target.value) || 0 })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="0.00"
-              />
-            </div>
-          )}
+          {/* Campos para ENTRADA cuando HAY lote seleccionado */}
+          {formData.tipo_movimiento === 'entrada' && loteSeleccionado && loteActual && (() => {
+            const cantidadPorEmpaquetado = parseFloat(loteActual.empaquetado) || 0
 
-          {/* Campos adicionales para ENTRADA */}
+            return (
+              <>
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs text-blue-800">
+                    💡 Vas a agregar más cantidad al <strong>lote existente</strong>
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {cantidadPorEmpaquetado > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Empaquetados a Ingresar *
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={empaquetadosAIngresar || ''}
+                        onChange={e => {
+                          const empaq = parseInt(e.target.value) || 0
+                          setEmpaquetadosAIngresar(empaq)
+                          // Auto-calcular cantidad
+                          setFormData({ ...formData, cantidad: empaq * cantidadPorEmpaquetado })
+                          // Usar el mismo número de empaquetados para la división
+                          setNumeroEmpaquetados(empaq)
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="0"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Cada empaquetado tiene: {cantidadPorEmpaquetado} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Cantidad Total a Ingresar *
+                      {selectedProduct && (
+                        <span className="text-xs text-gray-500 ml-1">
+                          ({(selectedProduct as any).unidades_medida?.nombre || 'unidades'})
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="0.01"
+                      step="0.01"
+                      value={formData.cantidad || ''}
+                      onChange={e => {
+                        const cantidad = parseFloat(e.target.value) || 0
+                        setFormData({ ...formData, cantidad })
+                        // Calcular empaquetados si hay cantidad por empaquetado
+                        if (cantidadPorEmpaquetado > 0) {
+                          const empaq = Math.floor(cantidad / cantidadPorEmpaquetado)
+                          setEmpaquetadosAIngresar(empaq)
+                          setNumeroEmpaquetados(empaq)
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0.00"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Cantidad actual del lote: {loteActual.cantidad} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Resumen cuando hay empaquetados */}
+                {(formData.cantidad ?? 0) > 0 && cantidadPorEmpaquetado > 0 && empaquetadosAIngresar > 0 && (
+                  <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-medium text-green-600 uppercase">Se agregará</p>
+                      <span className="text-lg">📦</span>
+                    </div>
+                    <p className="text-sm font-medium text-green-900">
+                      {empaquetadosAIngresar} empaquetado{empaquetadosAIngresar > 1 ? 's' : ''} de{' '}
+                      <strong>
+                        {cantidadPorEmpaquetado} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                      </strong>{' '}
+                      cada uno
+                    </p>
+                    <p className="text-xs text-green-700 mt-1">
+                      Total nuevo: {(loteActual.cantidad + (formData.cantidad ?? 0)).toFixed(2)}{' '}
+                      {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                    </p>
+                  </div>
+                )}
+
+                {/* Fecha de Vencimiento cuando hay lote seleccionado */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fecha de Vencimiento
+                  </label>
+                  <input
+                    type="date"
+                    value={fechaVencimiento}
+                    onChange={e => setFechaVencimiento(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  {!fechaModificada && fechaVencimiento && loteActual && (
+                    <p className="text-xs text-green-600 mt-1">
+                      ✓ Fecha del lote aplicada automáticamente
+                    </p>
+                  )}
+                  {fechaModificada && (
+                    <p className="text-xs text-orange-600 mt-1 font-medium">
+                      ⚠️ Modificaste la fecha - Se creará un NUEVO LOTE
+                    </p>
+                  )}
+                </div>
+              </>
+            )
+          })()}
+
+          {/* Campos para ENTRADA cuando NO hay lote seleccionado */}
           {formData.tipo_movimiento === 'entrada' && !loteSeleccionado && (
             <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cantidad Total *
+                  {selectedProduct && (
+                    <span className="text-xs text-gray-500 ml-1">
+                      ({(selectedProduct as any).unidades_medida?.nombre || 'unidades'})
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="0.01"
+                  step="0.01"
+                  value={formData.cantidad || ''}
+                  onChange={e =>
+                    setFormData({ ...formData, cantidad: parseFloat(e.target.value) || 0 })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="0.00"
+                />
+              </div>
+
               {/* Empaquetados y Fecha de Vencimiento */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -551,11 +749,10 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
           {/* Precio Real */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Precio Real (S/.) *
+              Precio Real (S/.)
             </label>
             <input
               type="number"
-              required
               min="0"
               step="0.01"
               value={formData.precio_real || ''}
@@ -565,12 +762,42 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="0.00"
             />
-            {selectedProduct?.precio_estimado && formData.precio_real === selectedProduct.precio_estimado && (
+            {loteActual && !precioModificado && (
+              <p className="text-xs text-green-600 mt-1">
+                ✓ Precio del lote aplicado automáticamente
+              </p>
+            )}
+            {!loteActual && selectedProduct?.precio_estimado && formData.precio_real === selectedProduct.precio_estimado && (
               <p className="text-xs text-blue-600 mt-1">
                 ✓ Precio estimado aplicado automáticamente
               </p>
             )}
+            {precioModificado && formData.tipo_movimiento === 'entrada' && (
+              <p className="text-xs text-orange-600 mt-1 font-medium">
+                ⚠️ Modificaste el precio - Se creará un NUEVO LOTE
+              </p>
+            )}
+            {precioModificado && formData.tipo_movimiento === 'salida' && (
+              <p className="text-xs text-blue-600 mt-1 font-medium">
+                ℹ️ Se agregará nota del cambio de precio en observaciones
+              </p>
+            )}
           </div>
+
+          {/* Advertencia general de modificación de datos */}
+          {datosDelLoteModificados && formData.tipo_movimiento === 'entrada' && (
+            <div className="p-3 bg-orange-50 border-2 border-orange-300 rounded-lg">
+              <p className="text-sm font-medium text-orange-900">
+                ⚠️ Datos modificados
+              </p>
+              <p className="text-xs text-orange-700 mt-1">
+                Modificaste {precioModificado ? 'el precio' : ''}{' '}
+                {precioModificado && fechaModificada ? 'y ' : ''}
+                {fechaModificada ? 'la fecha' : ''}.
+                Al registrar, se creará un <strong>nuevo lote</strong> con estos datos.
+              </p>
+            </div>
+          )}
 
           {/* Observación */}
           <div>

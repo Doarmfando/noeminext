@@ -27,6 +27,7 @@ export interface CreateMovementData {
   lote_id?: string  // ID del lote específico (detalle_contenedor)
   numero_empaquetados?: number  // Para entradas: en cuántos empaquetados dividir
   fecha_vencimiento?: string  // Para entradas: fecha de vencimiento del lote
+  actualizar_precio_lote?: boolean  // Flag para indicar si se debe actualizar el precio del lote
 }
 
 // Obtener movimientos
@@ -277,7 +278,14 @@ async function createMovement(data: CreateMovementData) {
   } else if (data.tipo_movimiento === 'entrada') {
     if (loteEspecifico) {
       // Agregar a lote existente
-      await procesarEntradaLote(supabase, loteEspecifico, data.cantidad, data.precio_real)
+      // Solo actualizar precio si el flag lo indica
+      await procesarEntradaLote(
+        supabase,
+        loteEspecifico,
+        data.cantidad,
+        data.precio_real,
+        data.actualizar_precio_lote
+      )
     } else {
       // Crear nuevo lote con empaquetados
       const cantidadPorEmpaquetado = data.numero_empaquetados
@@ -332,17 +340,25 @@ async function procesarEntradaLote(
   supabase: any,
   lote: any,
   cantidadAAgregar: number,
-  precioReal: number
+  precioReal: number,
+  actualizarPrecio?: boolean
 ) {
   const cantidadActual = lote.cantidad || 0
   const nuevaCantidad = cantidadActual + cantidadAAgregar
 
+  // Preparar datos a actualizar
+  const updateData: any = {
+    cantidad: nuevaCantidad,
+  }
+
+  // Solo actualizar precio si el flag lo indica (o si no está definido, por compatibilidad)
+  if (actualizarPrecio === true || actualizarPrecio === undefined) {
+    updateData.precio_real_unidad = precioReal
+  }
+
   await supabase
     .from('detalle_contenedor')
-    .update({
-      cantidad: nuevaCantidad,
-      precio_real_unidad: precioReal,
-    })
+    .update(updateData)
     .eq('id', lote.id)
 }
 

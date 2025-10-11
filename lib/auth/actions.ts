@@ -17,15 +17,11 @@ export async function login(usernameOrEmail: string, password: string) {
       .eq('visible', true)
       .single()
 
-    console.log('Búsqueda de usuario:', { usernameOrEmail, userData, dbError })
-
     if (!userData?.email) {
       return { error: 'Usuario no encontrado en la base de datos' }
     }
     email = userData.email
   }
-
-  console.log('Intentando login con email:', email)
 
   // 2. Autenticar con Supabase Auth
   const { error } = await supabase.auth.signInWithPassword({
@@ -36,12 +32,14 @@ export async function login(usernameOrEmail: string, password: string) {
   if (error) {
     console.error('Error de autenticación Supabase:', error)
     return {
-      error: `Auth error: ${error.message}. Verifica que el usuario exista en Supabase Auth y la contraseña sea correcta.`
+      error: `Credenciales incorrectas. Verifica tu usuario/email y contraseña.`
     }
   }
 
   revalidatePath('/', 'layout')
-  redirect('/dashboard')
+
+  // Retornar éxito en lugar de hacer redirect aquí
+  return { success: true }
 }
 
 export async function logout() {
