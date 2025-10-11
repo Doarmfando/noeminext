@@ -525,7 +525,7 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
               </div>
 
               {/* Resumen de Empaquetados */}
-              {formData.cantidad > 0 && numeroEmpaquetados > 0 && (
+              {(formData.cantidad ?? 0) > 0 && numeroEmpaquetados > 0 && (
                 <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-medium text-green-600 uppercase">Resultado</p>
@@ -534,13 +534,13 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
                   <p className="text-sm font-medium text-green-900">
                     {numeroEmpaquetados} empaquetado{numeroEmpaquetados > 1 ? 's' : ''} de{' '}
                     <strong>
-                      {(formData.cantidad / numeroEmpaquetados).toFixed(2)}{' '}
+                      {((formData.cantidad ?? 0) / numeroEmpaquetados).toFixed(2)}{' '}
                       {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
                     </strong>{' '}
                     cada uno
                   </p>
                   <p className="text-xs text-green-700 mt-1">
-                    = {formData.cantidad.toFixed(2)}{' '}
+                    = {(formData.cantidad ?? 0).toFixed(2)}{' '}
                     {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'} totales
                   </p>
                 </div>

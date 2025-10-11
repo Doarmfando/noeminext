@@ -7,7 +7,8 @@
       "Bash(if exist middleware.ts echo middleware.ts exists)",
       "Bash(test:*)",
       "Bash(npm run build:*)",
-      "Read(//c/Users/Brando/Documents/Working/Noemí/**)"
+      "Read(//c/Users/Brando/Documents/Working/Noemí/**)",
+      "Bash(vercel:*)"
     ],
     "deny": [],
     "ask": []
