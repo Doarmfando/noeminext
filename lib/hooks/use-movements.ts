@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { logCreate } from '@/lib/utils/logger'
 
 // Tipos
 export type MovementType = 'entrada' | 'salida'
@@ -243,6 +244,32 @@ async function createMovement(data: CreateMovementData) {
     .single()
 
   if (movimientoError) throw movimientoError
+
+  // Obtener información del producto y contenedor para el log
+  const { data: producto } = await supabase
+    .from('productos')
+    .select('nombre')
+    .eq('id', data.producto_id)
+    .single()
+
+  const { data: contenedor } = await supabase
+    .from('contenedores')
+    .select('nombre')
+    .eq('id', data.contenedor_id)
+    .single()
+
+  const { data: motivo } = await supabase
+    .from('motivos_movimiento')
+    .select('nombre')
+    .eq('id', data.motivo_movimiento_id)
+    .single()
+
+  // Registrar en log
+  await logCreate(
+    'movimientos',
+    movimiento.id,
+    `Movimiento de ${data.tipo_movimiento} creado: ${producto?.nombre || data.producto_id} - ${data.cantidad} unidades - ${motivo?.nombre || 'Sin motivo'} - Contenedor: ${contenedor?.nombre || data.contenedor_id}`
+  )
 
   // Actualizar el lote específico
   if (data.tipo_movimiento === 'salida' && loteEspecifico) {

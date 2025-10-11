@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Tables } from '@/types/database'
+import { logCreate, logUpdate, logDelete } from '@/lib/utils/logger'
 
 type User = Tables<'usuarios'>
 
@@ -69,6 +70,14 @@ export function useUpdateUser() {
         .single()
 
       if (error) throw error
+
+      // Registrar en log
+      await logUpdate(
+        'usuarios',
+        id,
+        `Usuario actualizado: ${data.nombre_usuario} - Campos: ${Object.keys(updates).join(', ')}`
+      )
+
       return data
     },
     onSuccess: () => {
@@ -103,6 +112,10 @@ export function useCreateUser() {
         .single()
 
       if (error) throw error
+
+      // Registrar en log
+      await logCreate('usuarios', data.id, `Usuario creado: ${data.nombre_usuario} (${data.nombre || 'Sin nombre'})`)
+
       return data
     },
     onSuccess: () => {
@@ -117,12 +130,26 @@ export function useDeleteUser() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Obtener el nombre del usuario para el log
+      const { data: usuario } = await supabase
+        .from('usuarios')
+        .select('nombre_usuario, nombre')
+        .eq('id', id)
+        .single()
+
       const { error } = await supabase
         .from('usuarios')
         .update({ visible: false })
         .eq('id', id)
 
       if (error) throw error
+
+      // Registrar en log
+      await logDelete(
+        'usuarios',
+        id,
+        `Usuario eliminado: ${usuario?.nombre_usuario || id} (${usuario?.nombre || 'Sin nombre'})`
+      )
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY })

@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Tables, TablesInsert, TablesUpdate } from '@/types/database'
+import { logCreate, logUpdate, logDelete } from '@/lib/utils/logger'
 
 type Category = Tables<'categorias'>
 type CategoryInsert = TablesInsert<'categorias'>
@@ -42,6 +43,10 @@ export function useCreateCategory() {
         .single()
 
       if (error) throw error
+
+      // Registrar en log
+      await logCreate('categorias', data.id, `Categoría creada: ${data.nombre}`)
+
       return data
     },
     onSuccess: () => {
@@ -64,6 +69,14 @@ export function useUpdateCategory() {
         .single()
 
       if (error) throw error
+
+      // Registrar en log
+      await logUpdate(
+        'categorias',
+        id,
+        `Categoría actualizada: ${data.nombre} - Campos: ${Object.keys(updates).join(', ')}`
+      )
+
       return data
     },
     onSuccess: () => {
@@ -78,12 +91,22 @@ export function useDeleteCategory() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Obtener el nombre de la categoría para el log
+      const { data: categoria } = await supabase
+        .from('categorias')
+        .select('nombre')
+        .eq('id', id)
+        .single()
+
       const { error } = await supabase
         .from('categorias')
         .update({ visible: false })
         .eq('id', id)
 
       if (error) throw error
+
+      // Registrar en log
+      await logDelete('categorias', id, `Categoría eliminada: ${categoria?.nombre || id}`)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY })

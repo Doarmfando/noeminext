@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Tables, TablesInsert, TablesUpdate } from '@/types/database'
+import { logCreate, logUpdate, logDelete } from '@/lib/utils/logger'
 
 type Unit = Tables<'unidades_medida'>
 type UnitInsert = TablesInsert<'unidades_medida'>
@@ -40,6 +41,10 @@ export function useCreateUnit() {
         .single()
 
       if (error) throw error
+
+      // Registrar en log
+      await logCreate('unidades_medida', data.id, `Unidad de medida creada: ${data.nombre} (${data.abreviatura})`)
+
       return data
     },
     onSuccess: () => {
@@ -62,6 +67,14 @@ export function useUpdateUnit() {
         .single()
 
       if (error) throw error
+
+      // Registrar en log
+      await logUpdate(
+        'unidades_medida',
+        id,
+        `Unidad de medida actualizada: ${data.nombre} (${data.abreviatura}) - Campos: ${Object.keys(updates).join(', ')}`
+      )
+
       return data
     },
     onSuccess: () => {
@@ -76,12 +89,26 @@ export function useDeleteUnit() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Obtener el nombre de la unidad para el log
+      const { data: unidad } = await supabase
+        .from('unidades_medida')
+        .select('nombre, abreviatura')
+        .eq('id', id)
+        .single()
+
       const { error } = await supabase
         .from('unidades_medida')
         .update({ visible: false })
         .eq('id', id)
 
       if (error) throw error
+
+      // Registrar en log
+      await logDelete(
+        'unidades_medida',
+        id,
+        `Unidad de medida eliminada: ${unidad?.nombre || id} (${unidad?.abreviatura || ''})`
+      )
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY })

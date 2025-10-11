@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { logCreate, logUpdate, logDelete } from '@/lib/utils/logger'
 
 // Interfaces
 export interface ContainerFilters {
@@ -176,6 +177,10 @@ async function createContainer(data: CreateContainerData) {
     .single()
 
   if (error) throw error
+
+  // Registrar en log
+  await logCreate('contenedores', container.id, `Contenedor creado: ${container.nombre}`)
+
   return container
 }
 
@@ -197,6 +202,10 @@ async function updateContainer(data: UpdateContainerData) {
     .single()
 
   if (error) throw error
+
+  // Registrar en log
+  await logUpdate('contenedores', data.id, `Contenedor actualizado: ${container.nombre}`)
+
   return container
 }
 
@@ -204,14 +213,35 @@ async function updateContainer(data: UpdateContainerData) {
 async function deleteContainer(id: string) {
   const supabase = createClient()
 
+  // Obtener el nombre del contenedor para el log
+  const { data: contenedor } = await supabase
+    .from('contenedores')
+    .select('nombre')
+    .eq('id', id)
+    .single()
+
   const { error } = await supabase.from('contenedores').update({ visible: false }).eq('id', id)
 
   if (error) throw error
+
+  // Registrar en log
+  await logDelete('contenedores', id, `Contenedor eliminado: ${contenedor?.nombre || id}`)
 }
 
 // Eliminar producto del contenedor (soft delete)
 async function deleteProductFromContainer(detalleId: string) {
   const supabase = createClient()
+
+  // Obtener información antes de eliminar
+  const { data: detalle } = await supabase
+    .from('detalle_contenedor')
+    .select(`
+      *,
+      productos(nombre),
+      contenedores(nombre)
+    `)
+    .eq('id', detalleId)
+    .single()
 
   const { error } = await supabase
     .from('detalle_contenedor')
@@ -219,6 +249,13 @@ async function deleteProductFromContainer(detalleId: string) {
     .eq('id', detalleId)
 
   if (error) throw error
+
+  // Registrar en log de eventos
+  await logDelete(
+    'detalle_contenedor',
+    detalleId,
+    `Producto eliminado de contenedor (simple): ${(detalle as any)?.productos?.nombre || 'Producto'} de ${(detalle as any)?.contenedores?.nombre || 'Contenedor'}`
+  )
 }
 
 // Remover producto del contenedor con registro de movimiento
@@ -289,14 +326,34 @@ async function removeProductFromContainer(data: {
   // 4. Actualizar empaquetados a 0 y marcar como no visible
   const { error: deleteError } = await supabase
     .from('detalle_contenedor')
-    .update({ 
+    .update({
       empaquetado: "0",  // ← AGREGAR ESTO
       cantidad: 0,       // ← AGREGAR ESTO (opcional pero recomendado)
-      visible: false 
+      visible: false
     })
     .eq('id', data.detalleId)
 
   if (deleteError) throw deleteError
+
+  // Obtener información del producto y contenedor para el log
+  const { data: producto } = await supabase
+    .from('productos')
+    .select('nombre')
+    .eq('id', data.productoId)
+    .single()
+
+  const { data: contenedor } = await supabase
+    .from('contenedores')
+    .select('nombre')
+    .eq('id', data.contenedorId)
+    .single()
+
+  // Registrar en log de eventos
+  await logDelete(
+    'detalle_contenedor',
+    data.detalleId,
+    `Producto removido de contenedor: ${producto?.nombre || data.productoId} de ${contenedor?.nombre || data.contenedorId} | ${stockAnterior} unidades removidas | Motivo: ${data.motivo}`
+  )
 }
 
 // Agregar producto a contenedor
@@ -389,6 +446,26 @@ async function addProductToContainer(data: {
       fecha_movimiento: new Date().toISOString(),
     })
 
+    // Obtener información del producto y contenedor para el log
+    const { data: producto } = await supabase
+      .from('productos')
+      .select('nombre')
+      .eq('id', data.producto_id)
+      .single()
+
+    const { data: contenedor } = await supabase
+      .from('contenedores')
+      .select('nombre')
+      .eq('id', data.contenedor_id)
+      .single()
+
+    // Registrar en log de eventos
+    await logUpdate(
+      'detalle_contenedor',
+      existingProduct.id,
+      `Producto asignado a contenedor (lote existente): ${producto?.nombre || data.producto_id} → ${contenedor?.nombre || data.contenedor_id} | +${data.cantidad_total} unidades (total: ${nuevaCantidadTotal})`
+    )
+
     return updatedDetail
   }
 
@@ -421,6 +498,26 @@ async function addProductToContainer(data: {
     stock_nuevo: data.cantidad_total,
     fecha_movimiento: new Date().toISOString(),
   })
+
+  // Obtener información del producto y contenedor para el log
+  const { data: producto } = await supabase
+    .from('productos')
+    .select('nombre')
+    .eq('id', data.producto_id)
+    .single()
+
+  const { data: contenedor } = await supabase
+    .from('contenedores')
+    .select('nombre')
+    .eq('id', data.contenedor_id)
+    .single()
+
+  // Registrar en log de eventos
+  await logCreate(
+    'detalle_contenedor',
+    newDetail.id,
+    `Producto asignado a contenedor: ${producto?.nombre || data.producto_id} → ${contenedor?.nombre || data.contenedor_id} | ${data.cantidad_total} unidades en ${data.numero_empaquetados} empaquetados`
+  )
 
   return newDetail
 }
@@ -507,6 +604,26 @@ async function updateProductInContainer(data: {
       fecha_movimiento: new Date().toISOString(),
     })
   }
+
+  // Obtener información del producto y contenedor para el log
+  const { data: producto } = await supabase
+    .from('productos')
+    .select('nombre')
+    .eq('id', data.producto_id)
+    .single()
+
+  const { data: contenedor } = await supabase
+    .from('contenedores')
+    .select('nombre')
+    .eq('id', data.contenedor_id)
+    .single()
+
+  // Registrar en log de eventos
+  await logUpdate(
+    'detalle_contenedor',
+    data.id,
+    `Producto actualizado en contenedor: ${producto?.nombre || data.producto_id} en ${contenedor?.nombre || data.contenedor_id} | ${data.cantidad_anterior} → ${data.cantidad_total} unidades`
+  )
 
   return updatedDetail
 }
@@ -636,6 +753,13 @@ async function transferProduct(data: {
       stock_nuevo: cantidad_transferida,
       fecha_movimiento: new Date().toISOString(),
     })
+
+    // Registrar en log de eventos (transferencia completa)
+    await logUpdate(
+      'detalle_contenedor',
+      data.detalleId,
+      `Producto transferido completamente: ${(detalleActual as any).producto.nombre} | ${(detalleActual as any).contenedor_origen.nombre} → ${contenedorDestino.nombre} | ${cantidad_transferida.toFixed(2)} unidades (${data.numero_empaquetados_transferir} empaquetados)`
+    )
   } else {
     // Si es parcial, reducir empaquetados en origen
     const nueva_cantidad_origen = empaquetadosRestantes * cantidadPorEmpaquetado
@@ -739,6 +863,13 @@ async function transferProduct(data: {
         fecha_movimiento: new Date().toISOString(),
       })
     }
+
+    // Registrar en log de eventos (transferencia parcial)
+    await logUpdate(
+      'detalle_contenedor',
+      data.detalleId,
+      `Producto transferido parcialmente: ${(detalleActual as any).producto.nombre} | ${(detalleActual as any).contenedor_origen.nombre} → ${contenedorDestino.nombre} | ${cantidad_transferida.toFixed(2)} unidades (${data.numero_empaquetados_transferir} empaquetados). Quedan ${nueva_cantidad_origen.toFixed(2)} unidades en origen`
+    )
   }
 }
 

@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Tables, TablesInsert, TablesUpdate } from '@/types/database'
+import { logCreate, logUpdate, logDelete } from '@/lib/utils/logger'
 
 type Role = Tables<'roles'>
 type RoleInsert = TablesInsert<'roles'>
@@ -40,6 +41,10 @@ export function useCreateRole() {
         .single()
 
       if (error) throw error
+
+      // Registrar en log
+      await logCreate('roles', data.id, `Rol creado: ${data.nombre}`)
+
       return data
     },
     onSuccess: () => {
@@ -62,6 +67,14 @@ export function useUpdateRole() {
         .single()
 
       if (error) throw error
+
+      // Registrar en log
+      await logUpdate(
+        'roles',
+        id,
+        `Rol actualizado: ${data.nombre} - Campos: ${Object.keys(updates).join(', ')}`
+      )
+
       return data
     },
     onSuccess: () => {
@@ -76,12 +89,22 @@ export function useDeleteRole() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Obtener el nombre del rol para el log
+      const { data: rol } = await supabase
+        .from('roles')
+        .select('nombre')
+        .eq('id', id)
+        .single()
+
       const { error } = await supabase
         .from('roles')
         .update({ visible: false })
         .eq('id', id)
 
       if (error) throw error
+
+      // Registrar en log
+      await logDelete('roles', id, `Rol eliminado: ${rol?.nombre || id}`)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY })

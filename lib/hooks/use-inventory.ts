@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { logCreate, logUpdate, logDelete } from '@/lib/utils/logger'
 
 // Tipos basados en la BD real
 export interface InventoryFilters {
@@ -208,6 +209,9 @@ async function createProduct(productData: CreateProductData) {
 
   if (productoError) throw productoError
 
+  // Registrar en log
+  await logCreate('productos', producto.id, `Producto creado: ${producto.nombre}`)
+
   // Crear relaciones en producto_contenedor
   const relaciones = []
 
@@ -367,6 +371,13 @@ async function updateProduct(data: UpdateProductData) {
   const supabase = createClient()
   const { id, contenedor_fijo_id, contenedores_recomendados, ...productoData } = data
 
+  // Obtener el nombre del producto para el log
+  const { data: producto } = await supabase
+    .from('productos')
+    .select('nombre')
+    .eq('id', id)
+    .single()
+
   // Actualizar solo los campos del producto que fueron enviados
   if (Object.keys(productoData).length > 0) {
     const { error: productoError } = await supabase
@@ -375,6 +386,13 @@ async function updateProduct(data: UpdateProductData) {
       .eq('id', id)
 
     if (productoError) throw productoError
+
+    // Registrar en log
+    await logUpdate(
+      'productos',
+      id,
+      `Producto actualizado: ${producto?.nombre || id} - Campos: ${Object.keys(productoData).join(', ')}`
+    )
   }
 
   // Actualizar contenedores si se proporcionaron
@@ -434,12 +452,22 @@ export function useUpdateProduct() {
 async function deleteProduct(productId: string) {
   const supabase = createClient()
 
+  // Obtener el nombre del producto para el log
+  const { data: producto } = await supabase
+    .from('productos')
+    .select('nombre')
+    .eq('id', productId)
+    .single()
+
   const { error } = await supabase
     .from('productos')
     .update({ visible: false })
     .eq('id', productId)
 
   if (error) throw error
+
+  // Registrar en log
+  await logDelete('productos', productId, `Producto eliminado: ${producto?.nombre || productId}`)
 
   return true
 }
