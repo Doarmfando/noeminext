@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npm run fix-duplicates:*)",
+      "Bash(if exist .env.local echo .env.local exists)",
+      "Bash(if exist middleware.ts echo middleware.ts exists)",
+      "Bash(test:*)",
+      "Bash(npm run build:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
