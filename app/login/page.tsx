@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { login } from '@/lib/auth/actions'
-import { User, Lock } from 'lucide-react'
+import { User, Lock, Eye, EyeOff } from 'lucide-react'
 import CirclesBackground from '@/components/auth/CirclesBackground'
 import LeftPanel from '@/components/auth/LeftPanel'
 import RestaurantLogo from '@/components/auth/RestaurantLogo'
@@ -11,6 +11,7 @@ import FooterBanner from '@/components/auth/FooterBanner'
 export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -86,7 +87,7 @@ export default function LoginPage() {
                     <Lock className="w-5 h-5 text-gray-400" />
                   </div>
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => {
                       setPassword(e.target.value)
@@ -94,8 +95,16 @@ export default function LoginPage() {
                     }}
                     placeholder="Contraseña"
                     disabled={loading}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all password-input"
+                    className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all password-input"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors z-10"
+                    disabled={loading}
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
 
                 <button
@@ -112,6 +121,16 @@ export default function LoginPage() {
                     'Acceder'
                   )}
                 </button>
+
+                {/* Link de recuperación de contraseña */}
+                <div className="text-center">
+                  <a
+                    href="/forgot-password"
+                    className="text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </a>
+                </div>
               </form>
 
               {/* Información de credenciales de prueba */}

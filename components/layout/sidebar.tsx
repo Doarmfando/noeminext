@@ -46,6 +46,9 @@ export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname()
   const [adminOpen, setAdminOpen] = useState(true)
 
+  // Verificar si el usuario es administrador
+  const isAdmin = user.rol?.nombre?.toLowerCase().includes('admin') || user.rol?.nombre?.toLowerCase().includes('administrador')
+
   return (
     <div className="w-64 bg-gray-900 text-white flex flex-col h-screen">
       {/* Header */}
@@ -60,10 +63,6 @@ export function Sidebar({ user }: SidebarProps) {
             />
           </div>
           <h1 className="text-xl font-bold">Inventario Noemí</h1>
-        </div>
-        <div className="mt-3 flex items-center gap-2 text-sm text-gray-400">
-          <User className="w-4 h-4" />
-          <span>{user.nombre || user.nombre_usuario}</span>
         </div>
       </div>
 
@@ -89,54 +88,73 @@ export function Sidebar({ user }: SidebarProps) {
           )
         })}
 
-        {/* Admin Section */}
-        <div className="pt-4">
-          <button
-            onClick={() => setAdminOpen(!adminOpen)}
-            className="flex items-center justify-between w-full px-4 py-2 text-gray-400 hover:text-white transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              <span className="font-medium">Administración</span>
-            </div>
-            {adminOpen ? (
-              <ChevronDown className="w-4 h-4" />
-            ) : (
-              <ChevronRight className="w-4 h-4" />
+        {/* Admin Section - Solo para administradores */}
+        {isAdmin && (
+          <div className="pt-4">
+            <button
+              onClick={() => setAdminOpen(!adminOpen)}
+              className="flex items-center justify-between w-full px-4 py-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                <span className="font-medium">Administración</span>
+              </div>
+              {adminOpen ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
+              )}
+            </button>
+
+            {adminOpen && (
+              <div className="mt-1 space-y-1">
+                {adminMenuItems.map((item) => {
+                  const Icon = item.icon
+                  const isActive = pathname === item.href
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-3 px-4 py-2 ml-4 rounded-lg transition-colors ${
+                        isActive
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span className="text-sm">{item.label}</span>
+                    </Link>
+                  )
+                })}
+              </div>
             )}
-          </button>
-
-          {adminOpen && (
-            <div className="mt-1 space-y-1">
-              {adminMenuItems.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-3 px-4 py-2 ml-4 rounded-lg transition-colors ${
-                      isActive
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span className="text-sm">{item.label}</span>
-                  </Link>
-                )
-              })}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </nav>
 
-      {/* Logout */}
+      {/* Usuario destacado */}
       <div className="p-4 border-t border-gray-800">
+        <div className="bg-gradient-to-r from-blue-600/20 to-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+              <User className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white truncate">
+                {user.nombre || user.nombre_usuario}
+              </p>
+              <p className="text-xs text-blue-400 truncate">
+                {user.rol?.nombre || 'Sin rol'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Logout */}
         <button
           onClick={() => logout()}
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors w-full"
+          className="flex items-center justify-center gap-3 px-4 py-3 rounded-lg bg-blue-600 hover:bg-red-600 text-white font-semibold transition-all w-full shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
         >
           <LogOut className="w-5 h-5" />
           <span>Cerrar Sesión</span>

@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Pencil, Trash2, Eye, EyeOff, Plus } from 'lucide-react'
+import { Pencil, Trash2, Eye, EyeOff, Plus, KeyRound } from 'lucide-react'
 import { useUsers, useRoles, useCreateUser, useUpdateUser, useDeleteUser } from '@/lib/hooks/use-users'
 import type { Tables } from '@/types/database'
+import { resetUserPassword } from '@/lib/auth/user-actions'
 
 type User = Tables<'usuarios'> & { rol: { id: string; nombre: string } | null }
 
@@ -24,6 +25,10 @@ export default function UsersPage() {
     rol_id: '',
   })
 
+  const [showPasswordReset, setShowPasswordReset] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [resettingPassword, setResettingPassword] = useState(false)
+
   const visibleUsers = users.filter((u) => u.visible)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,6 +47,11 @@ export default function UsersPage() {
         // Crear nuevo usuario
         if (!formData.nombre_usuario || !formData.clave) {
           alert('Usuario y contraseña son obligatorios')
+          return
+        }
+
+        if (!formData.email || !formData.email.trim()) {
+          alert('El email es obligatorio para crear un usuario')
           return
         }
 
@@ -84,6 +94,34 @@ export default function UsersPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('¿Eliminar este usuario?')) return
     await deleteMutation.mutateAsync(id)
+  }
+
+  const handleResetPassword = async (user: User) => {
+    const password = prompt(`Ingresa la nueva contraseña para ${user.nombre_usuario}:`)
+
+    if (!password) return
+
+    if (password.length < 6) {
+      alert('La contraseña debe tener al menos 6 caracteres')
+      return
+    }
+
+    if (!confirm(`¿Cambiar la contraseña de ${user.nombre_usuario}?`)) return
+
+    setResettingPassword(true)
+    try {
+      const result = await resetUserPassword(user.id, password)
+
+      if (result.error) {
+        alert(result.error)
+      } else {
+        alert('Contraseña actualizada exitosamente')
+      }
+    } catch (error: any) {
+      alert(error.message || 'Error al resetear contraseña')
+    } finally {
+      setResettingPassword(false)
+    }
   }
 
   const handleToggleVisibility = async (user: User) => {
@@ -165,18 +203,29 @@ export default function UsersPage() {
                   <button
                     onClick={() => handleEdit(user)}
                     className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
+                    title="Editar usuario"
                   >
                     <Pencil className="w-4 h-4" />
                   </button>
                   <button
+                    onClick={() => handleResetPassword(user)}
+                    className="inline-flex items-center gap-1 text-orange-600 hover:text-orange-800"
+                    disabled={resettingPassword}
+                    title="Cambiar contraseña"
+                  >
+                    <KeyRound className="w-4 h-4" />
+                  </button>
+                  <button
                     onClick={() => handleToggleVisibility(user)}
                     className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-800"
+                    title={user.visible ? 'Desactivar' : 'Activar'}
                   >
                     {user.visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                   <button
                     onClick={() => handleDelete(user.id)}
                     className="inline-flex items-center gap-1 text-red-600 hover:text-red-800"
+                    title="Eliminar usuario"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -247,14 +296,22 @@ export default function UsersPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email {!editingUser && <span className="text-red-500">*</span>}
+                </label>
                 <input
                   type="email"
+                  required={!editingUser}
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="usuario@ejemplo.com"
                 />
+                {!editingUser && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    El email es necesario para el sistema de autenticación
+                  </p>
+                )}
               </div>
 
               <div>

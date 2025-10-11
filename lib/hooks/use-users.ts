@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Tables } from '@/types/database'
 import { logCreate, logUpdate, logDelete } from '@/lib/utils/logger'
+import { createUserInAuth } from '@/lib/auth/user-actions'
 
 type User = Tables<'usuarios'>
 
@@ -95,28 +96,29 @@ export function useCreateUser() {
       nombre_usuario: string
       clave: string
       nombre?: string
-      email?: string
+      email: string // Ahora es obligatorio
       rol_id?: string
     }) => {
-      const { data, error } = await supabase
-        .from('usuarios')
-        .insert({
-          nombre_usuario: userData.nombre_usuario,
-          clave: userData.clave,
-          nombre: userData.nombre,
-          email: userData.email,
-          rol_id: userData.rol_id,
-          visible: true,
-        })
-        .select()
-        .single()
+      // Validar que el email esté presente
+      if (!userData.email || !userData.email.trim()) {
+        throw new Error('El email es obligatorio para crear un usuario')
+      }
 
-      if (error) throw error
+      // Usar la server action para crear en Auth y BD
+      const result = await createUserInAuth(userData)
+
+      if (result.error) {
+        throw new Error(result.error)
+      }
+
+      if (!result.data) {
+        throw new Error('No se pudo crear el usuario')
+      }
 
       // Registrar en log
-      await logCreate('usuarios', data.id, `Usuario creado: ${data.nombre_usuario} (${data.nombre || 'Sin nombre'})`)
+      await logCreate('usuarios', result.data.id, `Usuario creado: ${result.data.nombre_usuario} (${result.data.nombre || 'Sin nombre'})`)
 
-      return data
+      return result.data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY })
