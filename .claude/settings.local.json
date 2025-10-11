@@ -9,7 +9,11 @@
       "Bash(npm run build:*)",
       "Read(//c/Users/Brando/Documents/Working/Noemí/**)",
       "Bash(vercel:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(npm run dev)",
+      "Bash(timeout:*)",
+      "Bash(npm install:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
