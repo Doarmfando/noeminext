@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import { Plus, ArrowUpDown, FileText } from 'lucide-react'
 import {
   useMovements,
@@ -8,8 +9,14 @@ import {
   type MovementType,
 } from '@/lib/hooks/use-movements'
 import { useInventory, useContainers } from '@/lib/hooks/use-inventory'
-import { MovementFormModal } from './components/MovementFormModal'
-import { KardexModal } from './components/KardexModal'
+
+// Lazy load modales - solo se cargan cuando se abren
+const MovementFormModal = dynamic(() => import('./components/MovementFormModal').then(mod => ({ default: mod.MovementFormModal })), {
+  ssr: false,
+})
+const KardexModal = dynamic(() => import('./components/KardexModal').then(mod => ({ default: mod.KardexModal })), {
+  ssr: false,
+})
 
 export default function MovementsPage() {
   const [filters, setFilters] = useState<MovementFilters>({})
@@ -20,18 +27,29 @@ export default function MovementsPage() {
   const { data: inventory = [] } = useInventory()
   const { data: containers = [] } = useContainers()
 
-  // Extraer productos únicos
-  const products = Array.from(
-    new Map(inventory.map((item: any) => [item.producto_id, item.productos])).values()
-  )
+  // Extraer productos únicos (memoizado)
+  const products = useMemo(() => {
+    return Array.from(
+      new Map(inventory.map((item: any) => [item.producto_id, item.productos])).values()
+    )
+  }, [inventory])
 
-  const totalMovements = movements.length
-  const totalEntradas = movements.filter(
-    m => m.motivos_movimiento?.tipo_movimiento === 'entrada'
-  ).length
-  const totalSalidas = movements.filter(
-    m => m.motivos_movimiento?.tipo_movimiento === 'salida'
-  ).length
+  // Calcular estadísticas (memoizado)
+  const { totalMovements, totalEntradas, totalSalidas } = useMemo(() => {
+    const total = movements.length
+    const entradas = movements.filter(
+      m => m.motivos_movimiento?.tipo_movimiento === 'entrada'
+    ).length
+    const salidas = movements.filter(
+      m => m.motivos_movimiento?.tipo_movimiento === 'salida'
+    ).length
+
+    return {
+      totalMovements: total,
+      totalEntradas: entradas,
+      totalSalidas: salidas,
+    }
+  }, [movements])
 
   return (
     <div className="p-8">

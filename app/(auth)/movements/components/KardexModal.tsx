@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { X, FileText, Download } from 'lucide-react'
 import { useKardex } from '@/lib/hooks/use-movements'
 import { useContainers } from '@/lib/hooks/use-inventory'
-import * as XLSX from 'xlsx'
 
 interface KardexModalProps {
   product: {
@@ -57,7 +56,10 @@ export function KardexModal({ product, onClose }: KardexModalProps) {
     }
   }
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
+    // Cargar XLSX dinámicamente solo cuando se necesita
+    const XLSX = await import('xlsx')
+
     // Calcular totales
     const totalEntradas = kardex.reduce((sum: number, item: any) => sum + (item.entrada || 0), 0)
     const totalSalidas = kardex.reduce((sum: number, item: any) => sum + (item.salida || 0), 0)

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import { Plus, Search, Package, AlertCircle, Edit2, Trash2, Eye } from 'lucide-react'
 import {
   useInventory,
@@ -10,9 +11,17 @@ import {
   useDeleteProduct,
   type InventoryFilters,
 } from '@/lib/hooks/use-inventory'
-import { ProductFormModal } from './components/ProductFormModal'
-import { ProductDetailModal } from './components/ProductDetailModal'
-import { ProductEditModal } from './components/ProductEditModal'
+
+// Lazy load modales - solo se cargan cuando se abren
+const ProductFormModal = dynamic(() => import('./components/ProductFormModal').then(mod => ({ default: mod.ProductFormModal })), {
+  ssr: false,
+})
+const ProductDetailModal = dynamic(() => import('./components/ProductDetailModal').then(mod => ({ default: mod.ProductDetailModal })), {
+  ssr: false,
+})
+const ProductEditModal = dynamic(() => import('./components/ProductEditModal').then(mod => ({ default: mod.ProductEditModal })), {
+  ssr: false,
+})
 
 export default function InventoryPage() {
   const [filters, setFilters] = useState<InventoryFilters>({})
@@ -37,12 +46,20 @@ export default function InventoryPage() {
     }
   }
 
-  // Calcular estadísticas
-  const totalItems = inventory.length
-  const lowStockItems = inventory.filter(
-    item => item.productos.stock_min && item.cantidad < item.productos.stock_min
-  ).length
-  const outOfStockItems = inventory.filter(item => item.cantidad === 0).length
+  // Calcular estadísticas (memoizado para evitar recálculos innecesarios)
+  const { totalItems, lowStockItems, outOfStockItems } = useMemo(() => {
+    const total = inventory.length
+    const lowStock = inventory.filter(
+      item => item.productos.stock_min && item.cantidad < item.productos.stock_min
+    ).length
+    const outOfStock = inventory.filter(item => item.cantidad === 0).length
+
+    return {
+      totalItems: total,
+      lowStockItems: lowStock,
+      outOfStockItems: outOfStock,
+    }
+  }, [inventory])
 
   return (
     <div className="p-8">

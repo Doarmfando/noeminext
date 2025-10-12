@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import { Plus, Package, Edit, Trash2, Thermometer, Archive } from 'lucide-react'
 import {
   useContainersWithProducts,
@@ -8,8 +9,14 @@ import {
   useDeleteContainer,
   type ContainerFilters,
 } from '@/lib/hooks/use-containers'
-import { ContainerFormModal } from './components/ContainerFormModal'
-import { ContainerDetailModal } from './components/ContainerDetailModal'
+
+// Lazy load modales - solo se cargan cuando se abren
+const ContainerFormModal = dynamic(() => import('./components/ContainerFormModal').then(mod => ({ default: mod.ContainerFormModal })), {
+  ssr: false,
+})
+const ContainerDetailModal = dynamic(() => import('./components/ContainerDetailModal').then(mod => ({ default: mod.ContainerDetailModal })), {
+  ssr: false,
+})
 
 export default function ContainersPage() {
   const [filters, setFilters] = useState<ContainerFilters>({})
@@ -21,9 +28,18 @@ export default function ContainersPage() {
   const { data: containerTypes = [] } = useContainerTypes()
   const deleteMutation = useDeleteContainer()
 
-  const totalContainers = containers.length
-  const totalProducts = containers.reduce((sum, c) => sum + (c.stats?.totalProductos || 0), 0)
-  const totalValue = containers.reduce((sum, c) => sum + (c.stats?.valorTotal || 0), 0)
+  // Calcular estadísticas (memoizado para evitar recálculos innecesarios)
+  const { totalContainers, totalProducts, totalValue } = useMemo(() => {
+    const containers_count = containers.length
+    const products_count = containers.reduce((sum, c) => sum + (c.stats?.totalProductos || 0), 0)
+    const value_total = containers.reduce((sum, c) => sum + (c.stats?.valorTotal || 0), 0)
+
+    return {
+      totalContainers: containers_count,
+      totalProducts: products_count,
+      totalValue: value_total,
+    }
+  }, [containers])
 
   const handleDelete = async (id: string, nombre: string) => {
     if (!confirm(`¿Estás seguro de eliminar el contenedor "${nombre}"?`)) return
