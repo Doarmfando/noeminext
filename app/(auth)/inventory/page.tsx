@@ -11,6 +11,7 @@ import {
   useDeleteProduct,
   type InventoryFilters,
 } from '@/lib/hooks/use-inventory'
+import { Pagination } from '@/components/ui/pagination'
 
 // Lazy load modales - solo se cargan cuando se abren
 const ProductFormModal = dynamic(() => import('./components/ProductFormModal').then(mod => ({ default: mod.ProductFormModal })), {
@@ -28,6 +29,8 @@ export default function InventoryPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
   const [editingProduct, setEditingProduct] = useState<any>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(25)
 
   const { data: inventory = [], isLoading } = useInventory(filters)
   const { data: categories = [] } = useCategories()
@@ -60,6 +63,19 @@ export default function InventoryPage() {
       outOfStockItems: outOfStock,
     }
   }, [inventory])
+
+  // Paginación
+  const paginatedInventory = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return inventory.slice(startIndex, endIndex)
+  }, [inventory, currentPage, itemsPerPage])
+
+  // Reset page when filters change
+  const handleFiltersChange = (newFilters: InventoryFilters) => {
+    setFilters(newFilters)
+    setCurrentPage(1)
+  }
 
   return (
     <div className="p-8">
@@ -123,7 +139,7 @@ export default function InventoryPage() {
               <input
                 type="text"
                 value={filters.search || ''}
-                onChange={e => setFilters({ ...filters, search: e.target.value })}
+                onChange={e => handleFiltersChange({ ...filters, search: e.target.value })}
                 placeholder="Nombre del producto..."
                 className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
@@ -138,7 +154,7 @@ export default function InventoryPage() {
             <select
               value={filters.categoria_id || ''}
               onChange={e =>
-                setFilters({ ...filters, categoria_id: e.target.value || undefined })
+                handleFiltersChange({ ...filters, categoria_id: e.target.value || undefined })
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
@@ -158,7 +174,7 @@ export default function InventoryPage() {
             </label>
             <select
               onChange={e =>
-                setFilters({ ...filters, stock_bajo: e.target.value === 'low' })
+                handleFiltersChange({ ...filters, stock_bajo: e.target.value === 'low' })
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
@@ -235,7 +251,7 @@ export default function InventoryPage() {
                   </td>
                 </tr>
               )}
-              {inventory.map(item => {
+              {paginatedInventory.map(item => {
                 const product = item.productos
                 const container = item.contenedores
                 const stockStatus =
@@ -323,6 +339,16 @@ export default function InventoryPage() {
             </tbody>
           </table>
         </div>
+        {/* Paginación */}
+        {inventory.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={inventory.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+          />
+        )}
       </div>
 
       {/* Modals */}

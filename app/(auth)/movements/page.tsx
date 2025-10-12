@@ -9,6 +9,7 @@ import {
   type MovementType,
 } from '@/lib/hooks/use-movements'
 import { useInventory, useContainers } from '@/lib/hooks/use-inventory'
+import { Pagination } from '@/components/ui/pagination'
 
 // Lazy load modales - solo se cargan cuando se abren
 const MovementFormModal = dynamic(() => import('./components/MovementFormModal').then(mod => ({ default: mod.MovementFormModal })), {
@@ -22,6 +23,8 @@ export default function MovementsPage() {
   const [filters, setFilters] = useState<MovementFilters>({})
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(25)
 
   const { data: movements = [], isLoading } = useMovements(filters)
   const { data: inventory = [] } = useInventory()
@@ -50,6 +53,19 @@ export default function MovementsPage() {
       totalSalidas: salidas,
     }
   }, [movements])
+
+  // Paginación
+  const paginatedMovements = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return movements.slice(startIndex, endIndex)
+  }, [movements, currentPage, itemsPerPage])
+
+  // Reset page when filters change
+  const handleFiltersChange = (newFilters: MovementFilters) => {
+    setFilters(newFilters)
+    setCurrentPage(1)
+  }
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
@@ -105,7 +121,7 @@ export default function MovementsPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Producto</label>
             <select
               value={filters.producto_id || ''}
-              onChange={e => setFilters({ ...filters, producto_id: e.target.value || undefined })}
+              onChange={e => handleFiltersChange({ ...filters, producto_id: e.target.value || undefined })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">Todos</option>
@@ -121,7 +137,7 @@ export default function MovementsPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Contenedor</label>
             <select
               value={filters.contenedor_id || ''}
-              onChange={e => setFilters({ ...filters, contenedor_id: e.target.value || undefined })}
+              onChange={e => handleFiltersChange({ ...filters, contenedor_id: e.target.value || undefined })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">Todos</option>
@@ -138,7 +154,7 @@ export default function MovementsPage() {
             <input
               type="date"
               value={filters.fecha_inicio || ''}
-              onChange={e => setFilters({ ...filters, fecha_inicio: e.target.value || undefined })}
+              onChange={e => handleFiltersChange({ ...filters, fecha_inicio: e.target.value || undefined })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -148,7 +164,7 @@ export default function MovementsPage() {
             <input
               type="date"
               value={filters.fecha_fin || ''}
-              onChange={e => setFilters({ ...filters, fecha_fin: e.target.value || undefined })}
+              onChange={e => handleFiltersChange({ ...filters, fecha_fin: e.target.value || undefined })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -226,7 +242,7 @@ export default function MovementsPage() {
                   </td>
                 </tr>
               )}
-              {movements.map(movement => {
+              {paginatedMovements.map(movement => {
                 const product = movement.productos
                 const unit = (product as any).unidades_medida
                 const tipoMovimiento = movement.motivos_movimiento?.tipo_movimiento
@@ -320,6 +336,16 @@ export default function MovementsPage() {
             </tbody>
           </table>
         </div>
+        {/* Paginación */}
+        {movements.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={movements.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+          />
+        )}
       </div>
 
       {/* Modals */}
