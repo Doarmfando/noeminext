@@ -111,8 +111,8 @@ export default function InventoryPage() {
       </div>
 
       {/* Filters & Actions */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:p-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {/* Search */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -187,28 +187,28 @@ export default function InventoryPage() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Producto
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="hidden lg:table-cell px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Contenedor
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="hidden md:table-cell px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Categoría
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Cantidad
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="hidden md:table-cell px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Empaquetados
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Valor Total
+                <th className="hidden lg:table-cell px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Valor
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="hidden md:table-cell px-3 md:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Estado
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 md:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Acciones
                 </th>
               </tr>
@@ -249,35 +249,35 @@ export default function InventoryPage() {
 
                 return (
                   <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-medium text-gray-900">{product.nombre}</div>
-                      <div className="text-sm text-gray-500">{product.proveedor}</div>
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap">
+                      <div className="font-medium text-gray-900 text-sm">{product.nombre}</div>
+                      <div className="text-xs text-gray-500 md:hidden">{(product as any).categorias?.nombre}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="hidden lg:table-cell px-3 md:px-6 py-4 whitespace-nowrap">
                       {container ? (
-                        <span className="text-gray-900">{container.nombre}</span>
+                        <span className="text-gray-900 text-sm">{container.nombre}</span>
                       ) : (
-                        <span className="text-gray-400 italic">Sin asignar</span>
+                        <span className="text-gray-400 italic text-sm">Sin asignar</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td className="hidden md:table-cell px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {(product as any).categorias?.nombre || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <span className="font-medium text-gray-900">{item.cantidad}</span>
-                      <span className="text-sm text-gray-500 ml-1">
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap text-right">
+                      <span className="font-medium text-gray-900 text-sm">{item.cantidad}</span>
+                      <span className="text-xs text-gray-500 ml-1">
                         {(product as any).unidades_medida?.abreviatura || 'unid'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-gray-900">
+                    <td className="hidden md:table-cell px-3 md:px-6 py-4 whitespace-nowrap text-right text-gray-900 text-sm">
                       {item.totalEmpaquetados || item.empaquetado || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right font-medium text-gray-900">
+                    <td className="hidden lg:table-cell px-3 md:px-6 py-4 whitespace-nowrap text-right font-medium text-gray-900 text-sm">
                       S/. {valorTotal.toFixed(2)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <td className="hidden md:table-cell px-3 md:px-6 py-4 whitespace-nowrap text-center">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                           stockStatus === 'sin-stock'
                             ? 'bg-red-100 text-red-800'
                             : stockStatus === 'bajo'
@@ -288,12 +288,12 @@ export default function InventoryPage() {
                         {stockStatus === 'sin-stock'
                           ? 'Sin Stock'
                           : stockStatus === 'bajo'
-                            ? 'Stock Bajo'
-                            : 'Normal'}
+                            ? 'Bajo'
+                            : 'OK'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <div className="flex items-center justify-center gap-2">
+                    <td className="px-3 md:px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex items-center justify-center gap-1 md:gap-2">
                         <button
                           onClick={() => setSelectedProduct(item)}
                           className="p-1 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded"

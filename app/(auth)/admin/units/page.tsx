@@ -59,16 +59,12 @@ export default function UnitsPage() {
     await deleteMutation.mutateAsync(id)
   }
 
-  if (isLoading) {
-    return <div className="p-8">Cargando...</div>
-  }
-
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 md:p-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Unidades de Medida</h1>
-          <p className="text-gray-600 mt-1">{visibleUnits.length} unidades activas</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Unidades de Medida</h1>
+          <p className="text-sm md:text-base text-gray-600 mt-1">{visibleUnits.length} unidades activas</p>
         </div>
 
         <button
@@ -85,49 +81,73 @@ export default function UnitsPage() {
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Nombre
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Abreviatura
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {visibleUnits.map((unit) => (
-              <tr key={unit.id}>
-                <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                  {unit.nombre}
-                </td>
-                <td className="px-6 py-4 text-gray-600">
-                  <span className="inline-flex items-center px-2 py-1 rounded bg-gray-100 text-gray-800 text-sm font-medium">
-                    {unit.abreviatura}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right space-x-2">
-                  <button
-                    onClick={() => handleEdit(unit)}
-                    className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(unit.id)}
-                    className="inline-flex items-center gap-1 text-red-600 hover:text-red-800"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Nombre
+                </th>
+                <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Abreviatura
+                </th>
+                <th className="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Acciones
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {isLoading && visibleUnits.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="px-6 py-12 text-center text-gray-500">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      <span className="ml-3">Cargando unidades...</span>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {!isLoading && visibleUnits.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="px-6 py-12 text-center text-gray-500">
+                    <p className="text-lg font-medium">No hay unidades</p>
+                    <p className="text-sm mt-1">Crea tu primera unidad de medida</p>
+                  </td>
+                </tr>
+              )}
+              {visibleUnits.map((unit) => (
+                <tr key={unit.id} className="hover:bg-gray-50">
+                  <td className="px-3 md:px-6 py-4 whitespace-nowrap font-medium text-gray-900 text-sm">
+                    {unit.nombre}
+                  </td>
+                  <td className="px-3 md:px-6 py-4 text-gray-600">
+                    <span className="inline-flex items-center px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs md:text-sm font-medium">
+                      {unit.abreviatura}
+                    </span>
+                  </td>
+                  <td className="px-3 md:px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-1 md:gap-2">
+                      <button
+                        onClick={() => handleEdit(unit)}
+                        className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
+                        title="Editar"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(unit.id)}
+                        className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {showForm && (

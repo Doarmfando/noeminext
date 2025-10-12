@@ -131,16 +131,12 @@ export default function UsersPage() {
     })
   }
 
-  if (isLoading) {
-    return <div className="p-8">Cargando...</div>
-  }
-
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 md:p-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Usuarios</h1>
-          <p className="text-gray-600 mt-1">{visibleUsers.length} usuarios activos</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Usuarios</h1>
+          <p className="text-sm md:text-base text-gray-600 mt-1">{visibleUsers.length} usuarios activos</p>
         </div>
         <button
           onClick={handleCreate}
@@ -152,88 +148,110 @@ export default function UsersPage() {
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Usuario
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Nombre
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Email
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Rol
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Estado
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {visibleUsers.map((user) => (
-              <tr key={user.id}>
-                <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                  {user.nombre_usuario}
-                </td>
-                <td className="px-6 py-4 text-gray-600">{user.nombre || '-'}</td>
-                <td className="px-6 py-4 text-gray-600">{user.email || '-'}</td>
-                <td className="px-6 py-4">
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {user.rol?.nombre || 'Sin rol'}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <span
-                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      user.visible
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}
-                  >
-                    {user.visible ? 'Activo' : 'Inactivo'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right space-x-2">
-                  <button
-                    onClick={() => handleEdit(user)}
-                    className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
-                    title="Editar usuario"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleResetPassword(user)}
-                    className="inline-flex items-center gap-1 text-orange-600 hover:text-orange-800"
-                    disabled={resettingPassword}
-                    title="Cambiar contraseña"
-                  >
-                    <KeyRound className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleToggleVisibility(user)}
-                    className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-800"
-                    title={user.visible ? 'Desactivar' : 'Activar'}
-                  >
-                    {user.visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(user.id)}
-                    className="inline-flex items-center gap-1 text-red-600 hover:text-red-800"
-                    title="Eliminar usuario"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Usuario
+                </th>
+                <th className="hidden md:table-cell px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Nombre
+                </th>
+                <th className="hidden lg:table-cell px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Email
+                </th>
+                <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Rol
+                </th>
+                <th className="hidden md:table-cell px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Estado
+                </th>
+                <th className="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  Acciones
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {isLoading && visibleUsers.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      <span className="ml-3">Cargando usuarios...</span>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {!isLoading && visibleUsers.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    <p className="text-lg font-medium">No hay usuarios</p>
+                    <p className="text-sm mt-1">Crea tu primer usuario</p>
+                  </td>
+                </tr>
+              )}
+              {visibleUsers.map((user) => (
+                <tr key={user.id} className="hover:bg-gray-50">
+                  <td className="px-3 md:px-6 py-4 whitespace-nowrap font-medium text-gray-900 text-sm">
+                    {user.nombre_usuario}
+                  </td>
+                  <td className="hidden md:table-cell px-3 md:px-6 py-4 text-gray-600 text-sm">{user.nombre || '-'}</td>
+                  <td className="hidden lg:table-cell px-3 md:px-6 py-4 text-gray-600 text-sm">{user.email || '-'}</td>
+                  <td className="px-3 md:px-6 py-4">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {user.rol?.nombre || 'Sin rol'}
+                    </span>
+                  </td>
+                  <td className="hidden md:table-cell px-3 md:px-6 py-4">
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                        user.visible
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {user.visible ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </td>
+                  <td className="px-3 md:px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => handleEdit(user)}
+                        className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
+                        title="Editar usuario"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleResetPassword(user)}
+                        className="p-1 text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded"
+                        disabled={resettingPassword}
+                        title="Cambiar contraseña"
+                      >
+                        <KeyRound className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleToggleVisibility(user)}
+                        className="p-1 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded"
+                        title={user.visible ? 'Desactivar' : 'Activar'}
+                      >
+                        {user.visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                      <button
+                        onClick={() => handleDelete(user.id)}
+                        className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+                        title="Eliminar usuario"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {showForm && (

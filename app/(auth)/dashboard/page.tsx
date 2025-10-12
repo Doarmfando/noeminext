@@ -57,11 +57,11 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-6 lg:p-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard de Inventario</h1>
-        <p className="text-gray-600">Resumen general del estado de tu inventario</p>
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Dashboard de Inventario</h1>
+        <p className="text-sm md:text-base text-gray-600">Resumen general del estado de tu inventario</p>
       </div>
 
       {/* Stats Cards */}
@@ -70,7 +70,7 @@ export default function DashboardPage() {
       {/* Tabs */}
       <div className="mb-6">
         <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
+          <nav className="-mb-px flex space-x-4 md:space-x-8 overflow-x-auto">
             {tabs.map(tab => {
               const IconComponent = tab.icon
               const isActive = activeTab === tab.id
@@ -79,20 +79,21 @@ export default function DashboardPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  className={`group inline-flex items-center py-3 md:py-4 px-1 border-b-2 font-medium text-xs md:text-sm whitespace-nowrap transition-colors ${
                     isActive
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
                   <IconComponent
-                    className={`w-5 h-5 mr-2 ${
+                    className={`w-4 h-4 md:w-5 md:h-5 mr-1 md:mr-2 ${
                       isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'
                     }`}
                   />
-                  {tab.name}
+                  <span className="hidden sm:inline">{tab.name}</span>
+                  <span className="sm:hidden">{tab.name.split(' ')[0]}</span>
                   {tab.badge && tab.badge > 0 && (
-                    <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    <span className="ml-1 md:ml-2 inline-flex items-center px-1.5 md:px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                       {tab.badge}
                     </span>
                   )}
@@ -313,36 +314,36 @@ function StatsCards({ stats }: { stats: any }) {
   ]
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-4 md:gap-6 mb-6 md:mb-8">
       {statsData.map((stat, index) => {
         const IconComponent = stat.icon
 
         return (
           <div
             key={index}
-            className={`bg-white rounded-xl shadow-sm border ${stat.borderColor} p-6 hover:shadow-md transition-shadow`}
+            className={`bg-white rounded-xl shadow-sm border ${stat.borderColor} p-4 md:p-6 hover:shadow-md transition-shadow`}
           >
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
-                <p className={`text-2xl font-bold ${stat.color}`}>{stat.format(stat.value)}</p>
+                <p className="text-xs md:text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
+                <p className={`text-xl md:text-2xl font-bold ${stat.color}`}>{stat.format(stat.value)}</p>
               </div>
-              <div className={`${stat.bgColor} p-3 rounded-full`}>
-                <IconComponent className={`w-6 h-6 ${stat.color}`} />
+              <div className={`${stat.bgColor} p-2 md:p-3 rounded-full`}>
+                <IconComponent className={`w-5 h-5 md:w-6 md:h-6 ${stat.color}`} />
               </div>
             </div>
 
             {(stat.title === 'Stock Bajo' || stat.title === 'Sin Stock') && stat.value > 0 && (
-              <div className="mt-3 pt-3 border-t border-gray-200">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+              <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-gray-200">
+                <span className="inline-flex items-center px-2 md:px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                   Requiere atención
                 </span>
               </div>
             )}
 
             {stat.title === 'Por Vencer' && stat.value > 0 && (
-              <div className="mt-3 pt-3 border-t border-gray-200">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+              <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-gray-200">
+                <span className="inline-flex items-center px-2 md:px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
                   Revisar pronto
                 </span>
               </div>
@@ -350,8 +351,8 @@ function StatsCards({ stats }: { stats: any }) {
 
             {(stat.title === 'Total Productos' || stat.title === 'Categorías') &&
               stat.value > 0 && (
-                <div className="mt-3 pt-3 border-t border-gray-200">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-gray-200">
+                  <span className="inline-flex items-center px-2 md:px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                     Activo
                   </span>
                 </div>

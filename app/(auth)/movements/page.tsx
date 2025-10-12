@@ -52,11 +52,11 @@ export default function MovementsPage() {
   }, [movements])
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-6 lg:p-8">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Movimientos</h1>
-        <p className="text-gray-600">Gestiona las entradas y salidas de productos</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Movimientos</h1>
+        <p className="text-sm md:text-base text-gray-600">Gestiona las entradas y salidas de productos</p>
       </div>
 
       {/* Stats Cards */}
@@ -99,8 +99,8 @@ export default function MovementsPage() {
       </div>
 
       {/* Filters & Actions */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:p-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Producto</label>
             <select
@@ -153,13 +153,13 @@ export default function MovementsPage() {
             />
           </div>
 
-          <div className="flex items-end">
+          <div className="flex items-end sm:col-span-2 lg:col-span-1">
             <button
               onClick={() => setShowCreateModal(true)}
               className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
             >
-              <Plus className="w-5 h-5" />
-              Nuevo Movimiento
+              <Plus className="w-4 h-4 md:w-5 md:h-5" />
+              <span className="text-sm md:text-base">Nuevo Movimiento</span>
             </button>
           </div>
         </div>
@@ -171,37 +171,37 @@ export default function MovementsPage() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                <th className="px-3 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Fecha
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-3 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Producto
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="hidden md:table-cell px-3 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Contenedor
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-3 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Tipo
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="hidden md:table-cell px-3 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Motivo
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                <th className="px-3 md:px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Cantidad
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                <th className="hidden lg:table-cell px-3 md:px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Stock Anterior
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                <th className="hidden lg:table-cell px-3 md:px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Stock Nuevo
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                <th className="hidden md:table-cell px-3 md:px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Valor Total
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="hidden xl:table-cell px-3 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Observación
                 </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                <th className="px-3 md:px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                   Acciones
                 </th>
               </tr>
@@ -234,7 +234,7 @@ export default function MovementsPage() {
 
                 return (
                   <tr key={movement.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-3 md:px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                       <div className="text-sm font-medium">
                         {new Date(movement.fecha_movimiento).toLocaleDateString('es-PE')}
                       </div>
@@ -245,16 +245,16 @@ export default function MovementsPage() {
                         })}
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 md:px-4 py-3">
                       <div className="font-medium text-gray-900 text-sm">{product.nombre}</div>
                       <div className="text-xs text-gray-500">
                         {(product as any).categorias?.nombre || '-'}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className="hidden md:table-cell px-3 md:px-4 py-3 text-sm text-gray-600">
                       {movement.contenedores?.nombre || '-'}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    <td className="px-3 md:px-4 py-3 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                           tipoMovimiento === 'entrada'
@@ -267,10 +267,10 @@ export default function MovementsPage() {
                         {tipoMovimiento === 'entrada' ? 'Entrada' : tipoMovimiento === 'salida' ? 'Salida' : 'Ajuste'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className="hidden md:table-cell px-3 md:px-4 py-3 text-sm text-gray-600">
                       {movement.motivos_movimiento?.nombre || '-'}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right">
+                    <td className="px-3 md:px-4 py-3 whitespace-nowrap text-right">
                       <div
                         className={`font-medium text-sm ${
                           tipoMovimiento === 'entrada' ? 'text-green-600' : 'text-red-600'
@@ -283,27 +283,27 @@ export default function MovementsPage() {
                         {unit?.abreviatura || 'unid'}
                       </div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-600">
+                    <td className="hidden lg:table-cell px-3 md:px-4 py-3 whitespace-nowrap text-right text-sm text-gray-600">
                       {movement.stock_anterior != null ? movement.stock_anterior.toFixed(2) : '-'}
                       <div className="text-xs text-gray-500">
                         {unit?.abreviatura || 'unid'}
                       </div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium text-gray-900">
+                    <td className="hidden lg:table-cell px-3 md:px-4 py-3 whitespace-nowrap text-right text-sm font-medium text-gray-900">
                       {movement.stock_nuevo != null ? movement.stock_nuevo.toFixed(2) : '-'}
                       <div className="text-xs text-gray-500">
                         {unit?.abreviatura || 'unid'}
                       </div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right font-semibold text-gray-900">
+                    <td className="hidden md:table-cell px-3 md:px-4 py-3 whitespace-nowrap text-right font-semibold text-gray-900">
                       <div className="text-sm">S/. {valorTotal.toFixed(2)}</div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600 max-w-xs">
+                    <td className="hidden xl:table-cell px-3 md:px-4 py-3 text-sm text-gray-600 max-w-xs">
                       <div className="truncate" title={movement.observacion || ''}>
                         {movement.observacion || '-'}
                       </div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                    <td className="px-3 md:px-4 py-3 whitespace-nowrap text-center">
                       <button
                         onClick={() =>
                           setSelectedProduct({ id: product.id, nombre: product.nombre })
