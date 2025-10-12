@@ -21,10 +21,6 @@ export default function ContainersPage() {
   const { data: containerTypes = [] } = useContainerTypes()
   const deleteMutation = useDeleteContainer()
 
-  if (isLoading) {
-    return <div className="p-8">Cargando contenedores...</div>
-  }
-
   const totalContainers = containers.length
   const totalProducts = containers.reduce((sum, c) => sum + (c.stats?.totalProductos || 0), 0)
   const totalValue = containers.reduce((sum, c) => sum + (c.stats?.valorTotal || 0), 0)

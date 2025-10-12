@@ -878,6 +878,7 @@ export function useContainersWithProducts(filters: ContainerFilters = {}) {
   return useQuery({
     queryKey: ['containers-with-products', filters],
     queryFn: () => getContainersWithProducts(filters),
+    placeholderData: (previousData) => previousData, // Mantener datos previos mientras se recarga
   })
 }
 
@@ -885,6 +886,7 @@ export function useContainerTypes() {
   return useQuery({
     queryKey: ['container-types'],
     queryFn: getContainerTypes,
+    placeholderData: (previousData) => previousData, // Mantener datos previos mientras se recarga
   })
 }
 

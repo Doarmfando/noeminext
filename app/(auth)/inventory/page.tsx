@@ -37,10 +37,6 @@ export default function InventoryPage() {
     }
   }
 
-  if (isLoading) {
-    return <div className="p-8">Cargando inventario...</div>
-  }
-
   // Calcular estadísticas
   const totalItems = inventory.length
   const lowStockItems = inventory.filter(
@@ -201,6 +197,27 @@ export default function InventoryPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
+              {isLoading && inventory.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      <span className="ml-3">Cargando inventario...</span>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {!isLoading && inventory.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                    <Package className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                    <p className="text-lg font-medium">No hay productos en el inventario</p>
+                    <p className="text-sm mt-1">
+                      Comienza agregando tu primer producto
+                    </p>
+                  </td>
+                </tr>
+              )}
               {inventory.map(item => {
                 const product = item.productos
                 const container = item.contenedores
@@ -286,18 +303,6 @@ export default function InventoryPage() {
                   </tr>
                 )
               })}
-
-              {inventory.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
-                    <Package className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                    <p className="text-lg font-medium">No hay productos en el inventario</p>
-                    <p className="text-sm mt-1">
-                      Comienza agregando tu primer producto
-                    </p>
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>

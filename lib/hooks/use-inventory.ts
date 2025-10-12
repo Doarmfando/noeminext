@@ -251,6 +251,7 @@ export function useInventory(filters: InventoryFilters = {}) {
   return useQuery({
     queryKey: ['inventory', filters],
     queryFn: () => getInventory(filters),
+    placeholderData: (previousData) => previousData, // Mantener datos previos mientras se recarga
   })
 }
 
@@ -285,6 +286,7 @@ export function useCategories() {
       if (error) throw error
       return data
     },
+    placeholderData: (previousData) => previousData, // Mantener datos previos mientras se recarga
   })
 }
 
@@ -304,6 +306,7 @@ export function useUnits() {
       if (error) throw error
       return data
     },
+    placeholderData: (previousData) => previousData, // Mantener datos previos mientras se recarga
   })
 }
 
@@ -323,6 +326,7 @@ export function useContainers() {
       if (error) throw error
       return data
     },
+    placeholderData: (previousData) => previousData, // Mantener datos previos mientras se recarga
   })
 }
 

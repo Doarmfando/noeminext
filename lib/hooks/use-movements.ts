@@ -498,6 +498,7 @@ export function useMovements(filters: MovementFilters = {}) {
   return useQuery({
     queryKey: ['movements', filters],
     queryFn: () => getMovements(filters),
+    placeholderData: (previousData) => previousData, // Mantener datos previos mientras se recarga
   })
 }
 
@@ -545,6 +546,7 @@ export function useMovementReasons(tipoMovimiento?: MovementType) {
       if (error) throw error
       return data
     },
+    placeholderData: (previousData) => previousData, // Mantener datos previos mientras se recarga
   })
 }
 

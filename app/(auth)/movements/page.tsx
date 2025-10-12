@@ -25,10 +25,6 @@ export default function MovementsPage() {
     new Map(inventory.map((item: any) => [item.producto_id, item.productos])).values()
   )
 
-  if (isLoading) {
-    return <div className="p-8">Cargando movimientos...</div>
-  }
-
   const totalMovements = movements.length
   const totalEntradas = movements.filter(
     m => m.motivos_movimiento?.tipo_movimiento === 'entrada'
@@ -193,6 +189,25 @@ export default function MovementsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
+              {isLoading && movements.length === 0 && (
+                <tr>
+                  <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      <span className="ml-3">Cargando movimientos...</span>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {!isLoading && movements.length === 0 && (
+                <tr>
+                  <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
+                    <ArrowUpDown className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                    <p className="text-lg font-medium">No hay movimientos registrados</p>
+                    <p className="text-sm mt-1">Comienza registrando tu primer movimiento</p>
+                  </td>
+                </tr>
+              )}
               {movements.map(movement => {
                 const product = movement.productos
                 const unit = (product as any).unidades_medida
@@ -284,16 +299,6 @@ export default function MovementsPage() {
                   </tr>
                 )
               })}
-
-              {movements.length === 0 && (
-                <tr>
-                  <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
-                    <ArrowUpDown className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                    <p className="text-lg font-medium">No hay movimientos registrados</p>
-                    <p className="text-sm mt-1">Comienza registrando tu primer movimiento</p>
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
