@@ -88,7 +88,7 @@ export function Sidebar({ user }: SidebarProps) {
                 className="object-contain"
               />
             </div>
-            <h1 className="text-lg lg:text-xl font-bold truncate">Inventario Noemí</h1>
+            <h1 className="text-base lg:text-lg font-bold whitespace-nowrap">Inventario Noemí</h1>
           </div>
         </div>
 

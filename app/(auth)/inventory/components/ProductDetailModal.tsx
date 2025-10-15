@@ -8,10 +8,10 @@ interface ProductDetailModalProps {
 }
 
 export function ProductDetailModal({ product, onClose }: ProductDetailModalProps) {
-  const productData = product.productos
+  const productData = product.productos || {}
   const container = product.contenedores
   // Usar valor_total calculado con precio real, si no existe calcular con precio estimado
-  const valorTotal = product.valor_total || product.cantidad * (productData.precio_estimado || 0)
+  const valorTotal = product.valor_total || (product.cantidad || 0) * (productData.precio_estimado || 0)
   const precioPromedio = product.precio_real_unidad || productData.precio_estimado || 0
 
   return (
@@ -76,12 +76,12 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Contenedor:</span>
-                <span className="text-base font-medium text-gray-900">{container.nombre}</span>
+                <span className="text-base font-medium text-gray-900">{container?.nombre || '-'}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Cantidad:</span>
                 <span className="text-base font-medium text-gray-900">
-                  {product.cantidad} unid
+                  {product.cantidad || 0} unid
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -114,9 +114,9 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
                 <DollarSign className="w-5 h-5" />
                 Valor Total
               </h3>
-              <p className="text-2xl font-bold text-green-600">S/. {valorTotal.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-green-600">S/. {(valorTotal || 0).toFixed(2)}</p>
               <p className="text-sm text-gray-600 mt-1">
-                {product.cantidad} × S/. {precioPromedio.toFixed(2)}
+                {product.cantidad || 0} × S/. {(precioPromedio || 0).toFixed(2)}
               </p>
               {product.totalLotes > 1 && (
                 <p className="text-xs text-gray-500 mt-1">
