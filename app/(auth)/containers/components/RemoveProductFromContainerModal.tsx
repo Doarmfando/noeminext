@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { X, Trash2 } from 'lucide-react'
 import { useRemoveProductFromContainer } from '@/lib/hooks/use-containers'
 import { useQueryClient } from '@tanstack/react-query'
+import { useToast } from '@/lib/contexts/toast-context'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 interface RemoveProductFromContainerModalProps {
   product: any
@@ -27,9 +29,11 @@ export function RemoveProductFromContainerModal({
 
   const [motivo, setMotivo] = useState('')
   const [observaciones, setObservaciones] = useState('')
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const removeMutation = useRemoveProductFromContainer()
   const queryClient = useQueryClient()
+  const { showSuccess, showError, showWarning } = useToast()
 
   const motivosComunes = [
     'Producto vencido',
@@ -41,18 +45,18 @@ export function RemoveProductFromContainerModal({
     'Otro',
   ]
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!motivo.trim()) {
-      alert('Debes especificar un motivo')
+      showWarning('Debes especificar un motivo')
       return
     }
 
-    const confirmMessage = `¿Confirmas retirar "${product.productos?.nombre}" del contenedor "${container.nombre}"?\n\nCantidad: ${cantidadTotal.toFixed(2)} ${product.productos?.unidades_medida?.abreviatura || 'unid'} (${numeroEmpaquetados} empaquetados)\nMotivo: ${motivo}`
+    setShowConfirm(true)
+  }
 
-    if (!confirm(confirmMessage)) return
-
+  const confirmRemove = async () => {
     try {
       await removeMutation.mutateAsync({
         detalleId: product.id,
@@ -64,11 +68,11 @@ export function RemoveProductFromContainerModal({
 
       queryClient.invalidateQueries({ queryKey: ['containers-with-products'] })
       queryClient.invalidateQueries({ queryKey: ['movements'] })
-      alert('Producto retirado del contenedor y movimiento de salida registrado')
+      showSuccess('Producto retirado del contenedor y movimiento de salida registrado')
       onSuccess()
     } catch (error: any) {
       console.error('Error al retirar producto:', error)
-      alert(error.message || 'Error al retirar el producto')
+      showError(error.message || 'Error al retirar el producto')
     }
   }
 
@@ -183,6 +187,18 @@ export function RemoveProductFromContainerModal({
           </div>
         </form>
       </div>
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={confirmRemove}
+        title="Confirmar Retiro"
+        message={`¿Confirmas retirar "${product.productos?.nombre}" del contenedor "${container.nombre}"?\n\nCantidad: ${cantidadTotal.toFixed(2)} ${product.productos?.unidades_medida?.abreviatura || 'unid'} (${numeroEmpaquetados} empaquetados)\nMotivo: ${motivo}`}
+        confirmText="Retirar"
+        cancelText="Cancelar"
+        variant="danger"
+      />
     </div>
   )
 }

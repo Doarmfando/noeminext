@@ -9,6 +9,8 @@ import {
   useDeleteContainer,
   type ContainerFilters,
 } from '@/lib/hooks/use-containers'
+import { useToast } from '@/lib/contexts/toast-context'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 // Lazy load modales - solo se cargan cuando se abren
 const ContainerFormModal = dynamic(() => import('./components/ContainerFormModal').then(mod => ({ default: mod.ContainerFormModal })), {
@@ -23,10 +25,12 @@ export default function ContainersPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingContainer, setEditingContainer] = useState<any>(null)
   const [viewingContainer, setViewingContainer] = useState<any>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; nombre: string } | null>(null)
 
   const { data: containers = [], isLoading } = useContainersWithProducts(filters)
   const { data: containerTypes = [] } = useContainerTypes()
   const deleteMutation = useDeleteContainer()
+  const { showError } = useToast()
 
   // Calcular estadísticas (memoizado para evitar recálculos innecesarios)
   const { totalContainers, totalProducts, totalValue } = useMemo(() => {
@@ -41,13 +45,17 @@ export default function ContainersPage() {
     }
   }, [containers])
 
-  const handleDelete = async (id: string, nombre: string) => {
-    if (!confirm(`¿Estás seguro de eliminar el contenedor "${nombre}"?`)) return
+  const handleDelete = (id: string, nombre: string) => {
+    setDeleteConfirm({ id, nombre })
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return
 
     try {
-      await deleteMutation.mutateAsync(id)
+      await deleteMutation.mutateAsync(deleteConfirm.id)
     } catch (error: any) {
-      alert(error.message || 'Error al eliminar el contenedor')
+      showError(error.message || 'Error al eliminar el contenedor')
     }
   }
 
@@ -303,6 +311,18 @@ export default function ContainersPage() {
             onClose={() => setViewingContainer(null)}
           />
         )}
+
+        {/* Delete Confirmation Dialog */}
+        <ConfirmDialog
+          isOpen={!!deleteConfirm}
+          onClose={() => setDeleteConfirm(null)}
+          onConfirm={confirmDelete}
+          title="Eliminar Contenedor"
+          message={`¿Estás seguro de eliminar el contenedor "${deleteConfirm?.nombre}"?`}
+          confirmText="Eliminar"
+          cancelText="Cancelar"
+          variant="danger"
+        />
       </div>
     </div>
   )

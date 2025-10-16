@@ -8,6 +8,7 @@ import {
   useContainerTypes,
   type CreateContainerData,
 } from '@/lib/hooks/use-containers'
+import { useToast } from '@/lib/contexts/toast-context'
 
 interface ContainerFormModalProps {
   container?: any
@@ -19,6 +20,7 @@ export function ContainerFormModal({ container, onClose, onSuccess }: ContainerF
   const { data: containerTypes = [] } = useContainerTypes()
   const createMutation = useCreateContainer()
   const updateMutation = useUpdateContainer()
+  const { showError, showWarning } = useToast()
 
   const isEditing = !!container
 
@@ -28,6 +30,10 @@ export function ContainerFormModal({ container, onClose, onSuccess }: ContainerF
     capacidad: 0,
     ubicacion: '',
     descripcion: '',
+  })
+  const [errors, setErrors] = useState({
+    nombre: '',
+    tipo_contenedor_id: '',
   })
 
   useEffect(() => {
@@ -45,8 +51,23 @@ export function ContainerFormModal({ container, onClose, onSuccess }: ContainerF
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.nombre || !formData.tipo_contenedor_id) {
-      alert('Por favor completa todos los campos obligatorios')
+    // Validar campos
+    const newErrors = {
+      nombre: '',
+      tipo_contenedor_id: '',
+    }
+
+    if (!formData.nombre) {
+      newErrors.nombre = 'El nombre es obligatorio'
+    }
+
+    if (!formData.tipo_contenedor_id) {
+      newErrors.tipo_contenedor_id = 'El tipo de contenedor es obligatorio'
+    }
+
+    if (Object.values(newErrors).some(err => err)) {
+      setErrors(newErrors)
+      showWarning('Por favor completa todos los campos obligatorios')
       return
     }
 
@@ -62,7 +83,7 @@ export function ContainerFormModal({ container, onClose, onSuccess }: ContainerF
       onSuccess()
     } catch (error: any) {
       console.error('Error saving container:', error)
-      alert(error.message || 'Error al guardar el contenedor')
+      showError(error.message || 'Error al guardar el contenedor')
     }
   }
 
@@ -94,10 +115,18 @@ export function ContainerFormModal({ container, onClose, onSuccess }: ContainerF
                   type="text"
                   required
                   value={formData.nombre}
-                  onChange={e => setFormData({ ...formData, nombre: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  onChange={e => {
+                    setFormData({ ...formData, nombre: e.target.value })
+                    setErrors({ ...errors, nombre: '' })
+                  }}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    errors.nombre ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   placeholder="Ej: Cámara Frigorífica 1"
                 />
+                {errors.nombre && (
+                  <p className="text-xs text-red-600 mt-1">{errors.nombre}</p>
+                )}
               </div>
 
               <div>
@@ -107,8 +136,13 @@ export function ContainerFormModal({ container, onClose, onSuccess }: ContainerF
                 <select
                   required
                   value={formData.tipo_contenedor_id}
-                  onChange={e => setFormData({ ...formData, tipo_contenedor_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  onChange={e => {
+                    setFormData({ ...formData, tipo_contenedor_id: e.target.value })
+                    setErrors({ ...errors, tipo_contenedor_id: '' })
+                  }}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    errors.tipo_contenedor_id ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 >
                   <option value="">Seleccionar tipo</option>
                   {containerTypes.map(type => (
@@ -117,6 +151,9 @@ export function ContainerFormModal({ container, onClose, onSuccess }: ContainerF
                     </option>
                   ))}
                 </select>
+                {errors.tipo_contenedor_id && (
+                  <p className="text-xs text-red-600 mt-1">{errors.tipo_contenedor_id}</p>
+                )}
               </div>
 
               <div>

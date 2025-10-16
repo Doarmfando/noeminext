@@ -5,6 +5,7 @@ import { X, Plus, Search, Pin } from 'lucide-react'
 import { useInventory, useProductContainers } from '@/lib/hooks/use-inventory'
 import { useAddProductToContainer } from '@/lib/hooks/use-containers'
 import { ProductFormModal } from '@/app/(auth)/inventory/components/ProductFormModal'
+import { useToast } from '@/lib/contexts/toast-context'
 
 interface AddProductToContainerModalProps {
   container: any
@@ -226,11 +227,17 @@ function AddProductForm({
   onSuccess: () => void
 }) {
   const addMutation = useAddProductToContainer()
+  const { showSuccess, showError } = useToast()
   const [formData, setFormData] = useState({
     cantidad_total: 0,
     numero_empaquetados: 1,
     precio_real_unidad: product.precio_estimado || 0,
     fecha_vencimiento: '',
+  })
+  const [errors, setErrors] = useState({
+    cantidad_total: '',
+    numero_empaquetados: '',
+    precio_real_unidad: '',
   })
 
   const cantidadPorEmpaquetado = formData.cantidad_total / formData.numero_empaquetados
@@ -238,18 +245,27 @@ function AddProductForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Validar campos
+    const newErrors = {
+      cantidad_total: '',
+      numero_empaquetados: '',
+      precio_real_unidad: '',
+    }
+
     if (formData.cantidad_total <= 0) {
-      alert('La cantidad total debe ser mayor a 0')
-      return
+      newErrors.cantidad_total = 'La cantidad total debe ser mayor a 0'
     }
 
     if (formData.numero_empaquetados <= 0) {
-      alert('El número de empaquetados debe ser mayor a 0')
-      return
+      newErrors.numero_empaquetados = 'El número de empaquetados debe ser mayor a 0'
     }
 
     if (formData.precio_real_unidad <= 0) {
-      alert('El precio por unidad debe ser mayor a 0')
+      newErrors.precio_real_unidad = 'El precio por unidad debe ser mayor a 0'
+    }
+
+    if (Object.values(newErrors).some(err => err)) {
+      setErrors(newErrors)
       return
     }
 
@@ -263,11 +279,11 @@ function AddProductForm({
         fecha_vencimiento: formData.fecha_vencimiento || null,
       })
 
-      alert('Producto agregado exitosamente al contenedor')
+      showSuccess('Producto agregado exitosamente al contenedor')
       onSuccess()
     } catch (error: any) {
       console.error('Error al agregar producto:', error)
-      alert(error.message || 'Error al agregar el producto')
+      showError(error.message || 'Error al agregar el producto')
     }
   }
 
@@ -296,13 +312,22 @@ function AddProductForm({
             min="0.01"
             step="0.01"
             value={formData.cantidad_total || ''}
-            onChange={e => setFormData({ ...formData, cantidad_total: parseFloat(e.target.value) || 0 })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            onChange={e => {
+              setFormData({ ...formData, cantidad_total: parseFloat(e.target.value) || 0 })
+              setErrors({ ...errors, cantidad_total: '' })
+            }}
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              errors.cantidad_total ? 'border-red-500' : 'border-gray-300'
+            }`}
             placeholder="50.00"
           />
-          <p className="text-xs text-gray-500 mt-1">
-            Cantidad total en {product.unidades_medida?.nombre || 'unidades'}
-          </p>
+          {errors.cantidad_total ? (
+            <p className="text-xs text-red-600 mt-1">{errors.cantidad_total}</p>
+          ) : (
+            <p className="text-xs text-gray-500 mt-1">
+              Cantidad total en {product.unidades_medida?.nombre || 'unidades'}
+            </p>
+          )}
         </div>
 
         <div>
@@ -315,15 +340,22 @@ function AddProductForm({
             min="1"
             step="1"
             value={formData.numero_empaquetados || ''}
-            onChange={e =>
+            onChange={e => {
               setFormData({ ...formData, numero_empaquetados: parseInt(e.target.value) || 1 })
-            }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              setErrors({ ...errors, numero_empaquetados: '' })
+            }}
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              errors.numero_empaquetados ? 'border-red-500' : 'border-gray-300'
+            }`}
             placeholder="5"
           />
-          <p className="text-xs text-gray-500 mt-1">
-            ¿En cuántos empaquetados dividir la cantidad? (solo números enteros)
-          </p>
+          {errors.numero_empaquetados ? (
+            <p className="text-xs text-red-600 mt-1">{errors.numero_empaquetados}</p>
+          ) : (
+            <p className="text-xs text-gray-500 mt-1">
+              ¿En cuántos empaquetados dividir la cantidad? (solo números enteros)
+            </p>
+          )}
         </div>
 
         {formData.cantidad_total > 0 && formData.numero_empaquetados > 0 && (
@@ -353,24 +385,33 @@ function AddProductForm({
             min="0.01"
             step="0.01"
             value={formData.precio_real_unidad || ''}
-            onChange={e =>
+            onChange={e => {
               setFormData({
                 ...formData,
                 precio_real_unidad: parseFloat(e.target.value) || 0,
               })
-            }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              setErrors({ ...errors, precio_real_unidad: '' })
+            }}
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              errors.precio_real_unidad ? 'border-red-500' : 'border-gray-300'
+            }`}
             placeholder="5.50"
           />
-          {product.precio_estimado && formData.precio_real_unidad === product.precio_estimado && (
-            <p className="text-xs text-blue-600 mt-1">
-              ✓ Precio estimado (S/. {product.precio_estimado.toFixed(2)}) aplicado como referencia. Puedes modificarlo.
-            </p>
-          )}
-          {formData.precio_real_unidad > 0 && formData.cantidad_total > 0 && (
-            <p className="text-xs text-gray-600 mt-1">
-              Precio total: S/. {(formData.precio_real_unidad * formData.cantidad_total).toFixed(2)}
-            </p>
+          {errors.precio_real_unidad ? (
+            <p className="text-xs text-red-600 mt-1">{errors.precio_real_unidad}</p>
+          ) : (
+            <>
+              {product.precio_estimado && formData.precio_real_unidad === product.precio_estimado && (
+                <p className="text-xs text-blue-600 mt-1">
+                  ✓ Precio estimado (S/. {product.precio_estimado.toFixed(2)}) aplicado como referencia. Puedes modificarlo.
+                </p>
+              )}
+              {formData.precio_real_unidad > 0 && formData.cantidad_total > 0 && (
+                <p className="text-xs text-gray-600 mt-1">
+                  Precio total: S/. {(formData.precio_real_unidad * formData.cantidad_total).toFixed(2)}
+                </p>
+              )}
+            </>
           )}
         </div>
 

@@ -1,27 +1,36 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { X, Package, Plus, ArrowRightLeft, Edit, Trash2 } from 'lucide-react'
 import { AddProductToContainerModal } from './AddProductToContainerModal'
 import { TransferProductModal } from './TransferProductModal'
 import { EditProductInContainerModal } from './EditProductInContainerModal'
 import { RemoveProductFromContainerModal } from './RemoveProductFromContainerModal'
 import { useQueryClient } from '@tanstack/react-query'
+import { useContainersWithProducts } from '@/lib/hooks/use-containers'
 
 interface ContainerDetailModalProps {
   container: any
   onClose: () => void
 }
 
-export function ContainerDetailModal({ container, onClose }: ContainerDetailModalProps) {
+export function ContainerDetailModal({ container: initialContainer, onClose }: ContainerDetailModalProps) {
   const [showAddProduct, setShowAddProduct] = useState(false)
   const [showTransferModal, setShowTransferModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showRemoveModal, setShowRemoveModal] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
-  const productos = container.productos || []
 
   const queryClient = useQueryClient()
+
+  // Obtener los datos actualizados del contenedor
+  const { data: allContainers = [] } = useContainersWithProducts({})
+  const container = useMemo(
+    () => allContainers.find((c: any) => c.id === initialContainer.id) || initialContainer,
+    [allContainers, initialContainer.id]
+  )
+
+  const productos = container.productos || []
 
   const handleTransfer = (product: any) => {
     setSelectedProduct(product)
@@ -53,6 +62,11 @@ export function ContainerDetailModal({ container, onClose }: ContainerDetailModa
   const handleRemoveSuccess = () => {
     setShowRemoveModal(false)
     setSelectedProduct(null)
+    queryClient.invalidateQueries({ queryKey: ['containers-with-products'] })
+  }
+
+  const handleAddSuccess = () => {
+    setShowAddProduct(false)
     queryClient.invalidateQueries({ queryKey: ['containers-with-products'] })
   }
 
@@ -355,7 +369,7 @@ export function ContainerDetailModal({ container, onClose }: ContainerDetailModa
         <AddProductToContainerModal
           container={container}
           onClose={() => setShowAddProduct(false)}
-          onSuccess={() => setShowAddProduct(false)}
+          onSuccess={handleAddSuccess}
         />
       )}
 
