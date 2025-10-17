@@ -57,11 +57,15 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="p-4 md:p-6 lg:p-8">
+    <div className="p-4 md:p-6 lg:p-8 bg-gradient-to-br from-gray-50 to-blue-50 min-h-screen">
       {/* Header */}
       <div className="mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Dashboard de Inventario</h1>
-        <p className="text-sm md:text-base text-gray-600">Resumen general del estado de tu inventario</p>
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+          Dashboard de Inventario
+        </h1>
+        <p className="text-sm md:text-base text-gray-600">
+          Resumen general del estado de tu inventario en tiempo real
+        </p>
       </div>
 
       {/* Stats Cards */}
@@ -321,15 +325,17 @@ function StatsCards({ stats }: { stats: any }) {
         return (
           <div
             key={index}
-            className={`bg-white rounded-xl shadow-sm border ${stat.borderColor} p-4 md:p-6 hover:shadow-md transition-shadow`}
+            className={`bg-white rounded-xl shadow-md border ${stat.borderColor} p-4 md:p-6 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer`}
           >
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="text-xs md:text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
-                <p className={`text-xl md:text-2xl font-bold ${stat.color}`}>{stat.format(stat.value)}</p>
+                <p className="text-xs md:text-sm font-medium text-gray-600 mb-2">{stat.title}</p>
+                <p className={`text-xl md:text-2xl lg:text-3xl font-bold ${stat.color} tracking-tight`}>
+                  {stat.format(stat.value)}
+                </p>
               </div>
-              <div className={`${stat.bgColor} p-2 md:p-3 rounded-full`}>
-                <IconComponent className={`w-5 h-5 md:w-6 md:h-6 ${stat.color}`} />
+              <div className={`${stat.bgColor} p-3 md:p-4 rounded-xl shadow-sm`}>
+                <IconComponent className={`w-6 h-6 md:w-7 md:h-7 ${stat.color}`} />
               </div>
             </div>
 
@@ -471,45 +477,53 @@ function CategorySummary({ categoryStats }: { categoryStats: CategoryData[] }) {
   const totalCount = categoryStats.reduce((sum, cat) => sum + cat.count, 0)
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-          <Package2 className="w-5 h-5 text-purple-500 mr-2" />
+    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 md:p-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 md:mb-8 gap-3">
+        <h3 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center">
+          <div className="bg-gradient-to-br from-purple-500 to-pink-500 p-2 rounded-lg mr-3">
+            <Package2 className="w-5 h-5 md:w-6 md:h-6 text-white" />
+          </div>
           Resumen por Categorías
         </h3>
-        <div className="text-sm text-gray-600">
+        <div className="text-sm md:text-base text-gray-600 bg-gray-100 px-4 py-2 rounded-full">
           {categoryStats.length} categorías • {totalCount} productos
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-5 md:p-6 rounded-xl border-2 border-purple-200 hover:shadow-lg transition-all duration-300">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-800 font-medium">Total Categorías</p>
-              <p className="text-2xl font-bold text-purple-600">{categoryStats.length}</p>
+              <p className="text-purple-700 font-semibold text-sm mb-1">Total Categorías</p>
+              <p className="text-3xl md:text-4xl font-bold text-purple-600">{categoryStats.length}</p>
             </div>
-            <Package2 className="w-6 h-6 text-purple-500" />
+            <div className="bg-purple-500 p-3 rounded-xl">
+              <Package2 className="w-7 h-7 md:w-8 md:h-8 text-white" />
+            </div>
           </div>
         </div>
 
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-5 md:p-6 rounded-xl border-2 border-blue-200 hover:shadow-lg transition-all duration-300">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-800 font-medium">Total Productos</p>
-              <p className="text-2xl font-bold text-blue-600">{totalCount}</p>
+              <p className="text-blue-700 font-semibold text-sm mb-1">Total Productos</p>
+              <p className="text-3xl md:text-4xl font-bold text-blue-600">{totalCount}</p>
             </div>
-            <TrendingUp className="w-6 h-6 text-blue-500" />
+            <div className="bg-blue-500 p-3 rounded-xl">
+              <TrendingUp className="w-7 h-7 md:w-8 md:h-8 text-white" />
+            </div>
           </div>
         </div>
 
-        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+        <div className="bg-gradient-to-br from-green-50 to-green-100 p-5 md:p-6 rounded-xl border-2 border-green-200 hover:shadow-lg transition-all duration-300 sm:col-span-2 lg:col-span-1">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-800 font-medium">Valor Total</p>
-              <p className="text-2xl font-bold text-green-600">S/. {totalValue.toFixed(2)}</p>
+              <p className="text-green-700 font-semibold text-sm mb-1">Valor Total</p>
+              <p className="text-3xl md:text-4xl font-bold text-green-600">S/. {totalValue.toFixed(2)}</p>
             </div>
-            <TrendingUp className="w-6 h-6 text-green-500" />
+            <div className="bg-green-500 p-3 rounded-xl">
+              <DollarSign className="w-7 h-7 md:w-8 md:h-8 text-white" />
+            </div>
           </div>
         </div>
       </div>

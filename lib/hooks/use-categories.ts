@@ -44,8 +44,8 @@ export function useCreateCategory() {
 
       if (error) throw error
 
-      // Registrar en log
-      await logCreate('categorias', data.id, `Categoría creada: ${data.nombre}`)
+      // Registrar en log (sin bloquear)
+      logCreate('categorias', data.id, `Categoría creada: ${data.nombre}`).catch(console.error)
 
       return data
     },
@@ -70,12 +70,12 @@ export function useUpdateCategory() {
 
       if (error) throw error
 
-      // Registrar en log
-      await logUpdate(
+      // Registrar en log (sin bloquear)
+      logUpdate(
         'categorias',
         id,
         `Categoría actualizada: ${data.nombre} - Campos: ${Object.keys(updates).join(', ')}`
-      )
+      ).catch(console.error)
 
       return data
     },
@@ -105,8 +105,8 @@ export function useDeleteCategory() {
 
       if (error) throw error
 
-      // Registrar en log
-      await logDelete('categorias', id, `Categoría eliminada: ${categoria?.nombre || id}`)
+      // Registrar en log (sin bloquear)
+      logDelete('categorias', id, `Categoría eliminada: ${categoria?.nombre || id}`).catch(console.error)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY })

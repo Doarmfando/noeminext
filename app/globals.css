@@ -66,3 +66,32 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom Scrollbar Styles */
+@layer utilities {
+  /* Scrollbar oscuro para el sidebar */
+  .scrollbar-dark::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-dark::-webkit-scrollbar-track {
+    background: rgb(17, 24, 39); /* gray-900 */
+    border-radius: 10px;
+  }
+
+  .scrollbar-dark::-webkit-scrollbar-thumb {
+    background: rgb(55, 65, 81); /* gray-700 */
+    border-radius: 10px;
+    transition: background 0.2s ease;
+  }
+
+  .scrollbar-dark::-webkit-scrollbar-thumb:hover {
+    background: rgb(75, 85, 99); /* gray-600 */
+  }
+
+  /* Firefox scrollbar */
+  .scrollbar-dark {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(55, 65, 81) rgb(17, 24, 39);
+  }
+}

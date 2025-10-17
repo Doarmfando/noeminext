@@ -61,13 +61,19 @@ async function getDashboardStats(): Promise<DashboardStats> {
     }
   }
 
-  // Paralelizar consultas de detalles
+  // Paralelizar consultas de detalles (solo de contenedores visibles)
   const detallesPromises = productos.map(producto =>
     supabase
       .from('detalle_contenedor')
-      .select('cantidad, fecha_vencimiento, precio_real_unidad')
+      .select(`
+        cantidad,
+        fecha_vencimiento,
+        precio_real_unidad,
+        contenedores!inner(visible)
+      `)
       .eq('producto_id', producto.id)
       .eq('visible', true)
+      .eq('contenedores.visible', true)
       .then(res => ({
         productoId: producto.id,
         stockMin: producto.stock_min,
@@ -137,9 +143,14 @@ async function getLowStockProducts(): Promise<Product[]> {
   const detallesPromises = productos.map(producto =>
     supabase
       .from('detalle_contenedor')
-      .select('cantidad, precio_real_unidad')
+      .select(`
+        cantidad,
+        precio_real_unidad,
+        contenedores!inner(visible)
+      `)
       .eq('producto_id', producto.id)
       .eq('visible', true)
+      .eq('contenedores.visible', true)
       .then(res => ({
         producto,
         detalles: res.data || [],
@@ -195,9 +206,15 @@ async function getExpiringProducts(): Promise<Product[]> {
   const detallesPromises = productos.map(producto =>
     supabase
       .from('detalle_contenedor')
-      .select('cantidad, fecha_vencimiento, precio_real_unidad')
+      .select(`
+        cantidad,
+        fecha_vencimiento,
+        precio_real_unidad,
+        contenedores!inner(visible)
+      `)
       .eq('producto_id', producto.id)
       .eq('visible', true)
+      .eq('contenedores.visible', true)
       .not('fecha_vencimiento', 'is', null)
       .lte('fecha_vencimiento', nextWeek.toISOString().split('T')[0])
       .gte('fecha_vencimiento', new Date().toISOString().split('T')[0])
@@ -262,9 +279,14 @@ async function getProductsByCategory(): Promise<CategoryData[]> {
       const stockPromises = productos.map((producto: any) =>
         supabase
           .from('detalle_contenedor')
-          .select('cantidad, precio_real_unidad')
+          .select(`
+            cantidad,
+            precio_real_unidad,
+            contenedores!inner(visible)
+          `)
           .eq('producto_id', producto.id)
           .eq('visible', true)
+          .eq('contenedores.visible', true)
           .then(res => {
             // Calcular valor total usando precio_real_unidad, si no existe usar precio_estimado
             return res.data?.reduce((sum, d) => {

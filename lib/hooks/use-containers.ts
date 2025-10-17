@@ -14,7 +14,6 @@ export interface CreateContainerData {
   nombre: string
   tipo_contenedor_id: string
   capacidad?: number
-  ubicacion?: string
   descripcion?: string
 }
 
@@ -169,7 +168,6 @@ async function createContainer(data: CreateContainerData) {
       nombre: data.nombre,
       tipo_contenedor_id: data.tipo_contenedor_id,
       capacidad: data.capacidad,
-      ubicacion: data.ubicacion,
       descripcion: data.descripcion,
       visible: true,
     })
@@ -178,8 +176,8 @@ async function createContainer(data: CreateContainerData) {
 
   if (error) throw error
 
-  // Registrar en log
-  await logCreate('contenedores', container.id, `Contenedor creado: ${container.nombre}`)
+  // Registrar en log (sin bloquear)
+  logCreate('contenedores', container.id, `Contenedor creado: ${container.nombre}`).catch(console.error)
 
   return container
 }
@@ -194,7 +192,6 @@ async function updateContainer(data: UpdateContainerData) {
       nombre: data.nombre,
       tipo_contenedor_id: data.tipo_contenedor_id,
       capacidad: data.capacidad,
-      ubicacion: data.ubicacion,
       descripcion: data.descripcion,
     })
     .eq('id', data.id)
@@ -203,8 +200,8 @@ async function updateContainer(data: UpdateContainerData) {
 
   if (error) throw error
 
-  // Registrar en log
-  await logUpdate('contenedores', data.id, `Contenedor actualizado: ${container.nombre}`)
+  // Registrar en log (sin bloquear)
+  logUpdate('contenedores', data.id, `Contenedor actualizado: ${container.nombre}`).catch(console.error)
 
   return container
 }
@@ -224,8 +221,8 @@ async function deleteContainer(id: string) {
 
   if (error) throw error
 
-  // Registrar en log
-  await logDelete('contenedores', id, `Contenedor eliminado: ${contenedor?.nombre || id}`)
+  // Registrar en log (sin bloquear)
+  logDelete('contenedores', id, `Contenedor eliminado: ${contenedor?.nombre || id}`).catch(console.error)
 }
 
 // Eliminar producto del contenedor (soft delete)

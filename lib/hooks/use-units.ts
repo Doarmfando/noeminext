@@ -42,8 +42,8 @@ export function useCreateUnit() {
 
       if (error) throw error
 
-      // Registrar en log
-      await logCreate('unidades_medida', data.id, `Unidad de medida creada: ${data.nombre} (${data.abreviatura})`)
+      // Registrar en log (sin bloquear)
+      logCreate('unidades_medida', data.id, `Unidad de medida creada: ${data.nombre} (${data.abreviatura})`).catch(console.error)
 
       return data
     },
@@ -68,12 +68,12 @@ export function useUpdateUnit() {
 
       if (error) throw error
 
-      // Registrar en log
-      await logUpdate(
+      // Registrar en log (sin bloquear)
+      logUpdate(
         'unidades_medida',
         id,
         `Unidad de medida actualizada: ${data.nombre} (${data.abreviatura}) - Campos: ${Object.keys(updates).join(', ')}`
-      )
+      ).catch(console.error)
 
       return data
     },
@@ -103,12 +103,12 @@ export function useDeleteUnit() {
 
       if (error) throw error
 
-      // Registrar en log
-      await logDelete(
+      // Registrar en log (sin bloquear)
+      logDelete(
         'unidades_medida',
         id,
         `Unidad de medida eliminada: ${unidad?.nombre || id} (${unidad?.abreviatura || ''})`
-      )
+      ).catch(console.error)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY })
