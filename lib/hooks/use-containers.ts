@@ -947,12 +947,17 @@ export function useAddProductToContainer() {
   return useMutation({
     mutationFn: addProductToContainer,
     onSuccess: () => {
+      // Refetch inmediato para vistas activas
       queryClient.refetchQueries({
         predicate: (query) => {
           const key = query.queryKey[0]
-          return key === 'containers-with-products' || key === 'containers' || key === 'inventory' || key === 'movements'
+          return key === 'containers-with-products' || key === 'containers' || key === 'inventory'
         },
         type: 'active'
+      })
+      // Invalidate movements para que se refetch cuando se navegue a esa vista
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === 'movements'
       })
     },
   })
@@ -981,12 +986,17 @@ export function useRemoveProductFromContainer() {
   return useMutation({
     mutationFn: removeProductFromContainer,
     onSuccess: () => {
+      // Refetch inmediato para vistas activas
       queryClient.refetchQueries({
         predicate: (query) => {
           const key = query.queryKey[0]
-          return key === 'containers-with-products' || key === 'containers' || key === 'movements' || key === 'inventory'
+          return key === 'containers-with-products' || key === 'containers' || key === 'inventory'
         },
         type: 'active'
+      })
+      // Invalidate movements para que se refetch cuando se navegue a esa vista
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === 'movements'
       })
     },
   })
@@ -998,12 +1008,17 @@ export function useUpdateProductInContainer() {
   return useMutation({
     mutationFn: updateProductInContainer,
     onSuccess: () => {
+      // Refetch inmediato para vistas activas
       queryClient.refetchQueries({
         predicate: (query) => {
           const key = query.queryKey[0]
           return key === 'containers-with-products' || key === 'containers'
         },
         type: 'active'
+      })
+      // Invalidate movements para que se refetch cuando se navegue a esa vista
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === 'movements'
       })
     },
   })
@@ -1015,12 +1030,17 @@ export function useTransferProduct() {
   return useMutation({
     mutationFn: transferProduct,
     onSuccess: () => {
+      // Refetch inmediato para vistas activas
       queryClient.refetchQueries({
         predicate: (query) => {
           const key = query.queryKey[0]
-          return key === 'containers-with-products' || key === 'containers' || key === 'movements' || key === 'inventory'
+          return key === 'containers-with-products' || key === 'containers' || key === 'inventory'
         },
         type: 'active'
+      })
+      // Invalidate movements para que se refetch cuando se navegue a esa vista
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === 'movements'
       })
     },
   })

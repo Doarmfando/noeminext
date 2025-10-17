@@ -516,10 +516,13 @@ export function useCreateMovement() {
   return useMutation({
     mutationFn: createMovement,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['movements'] })
-      queryClient.invalidateQueries({ queryKey: ['kardex'] })
-      queryClient.invalidateQueries({ queryKey: ['inventory'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.refetchQueries({
+        predicate: (query) => {
+          const key = query.queryKey[0]
+          return key === 'movements' || key === 'kardex' || key === 'inventory' || key === 'dashboard'
+        },
+        type: 'active'
+      })
     },
   })
 }
