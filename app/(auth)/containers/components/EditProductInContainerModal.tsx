@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { X, Save } from 'lucide-react'
 import { useUpdateProductInContainer } from '@/lib/hooks/use-containers'
-import { useQueryClient } from '@tanstack/react-query'
 
 interface EditProductInContainerModalProps {
   product: any
@@ -32,7 +31,6 @@ export function EditProductInContainerModal({
   )
 
   const updateMutation = useUpdateProductInContainer()
-  const queryClient = useQueryClient()
 
   const cantidadTotal = numeroEmpaquetados * cantidadPorEmpaquetado
   const cambioEmpaquetados = numeroEmpaquetados - numeroEmpaquetadosActual
@@ -64,8 +62,7 @@ export function EditProductInContainerModal({
         numero_empaquetados_anterior: numeroEmpaquetadosActual,
       })
 
-      queryClient.invalidateQueries({ queryKey: ['containers-with-products'] })
-      queryClient.invalidateQueries({ queryKey: ['movements'] })
+      // El mutation ya hace refetch, no duplicar aquí
 
       if (cambioEmpaquetados !== 0) {
         alert(

@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { X, Trash2 } from 'lucide-react'
 import { useRemoveProductFromContainer } from '@/lib/hooks/use-containers'
-import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/lib/contexts/toast-context'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
@@ -32,7 +31,6 @@ export function RemoveProductFromContainerModal({
   const [showConfirm, setShowConfirm] = useState(false)
 
   const removeMutation = useRemoveProductFromContainer()
-  const queryClient = useQueryClient()
   const { showSuccess, showError, showWarning } = useToast()
 
   const motivosComunes = [
@@ -66,8 +64,7 @@ export function RemoveProductFromContainerModal({
         observaciones: observaciones.trim() || null,
       })
 
-      queryClient.invalidateQueries({ queryKey: ['containers-with-products'] })
-      queryClient.invalidateQueries({ queryKey: ['movements'] })
+      // El mutation ya hace refetch, no duplicar aquí
       showSuccess('Producto retirado del contenedor y movimiento de salida registrado')
       onSuccess()
     } catch (error: any) {

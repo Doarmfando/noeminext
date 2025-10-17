@@ -896,8 +896,13 @@ export function useCreateContainer() {
   return useMutation({
     mutationFn: createContainer,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['containers-with-products'] })
-      queryClient.invalidateQueries({ queryKey: ['containers'] })
+      queryClient.refetchQueries({
+        predicate: (query) => {
+          const key = query.queryKey[0]
+          return key === 'containers-with-products' || key === 'containers'
+        },
+        type: 'active'
+      })
     },
   })
 }
@@ -908,8 +913,13 @@ export function useUpdateContainer() {
   return useMutation({
     mutationFn: updateContainer,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['containers-with-products'] })
-      queryClient.invalidateQueries({ queryKey: ['containers'] })
+      queryClient.refetchQueries({
+        predicate: (query) => {
+          const key = query.queryKey[0]
+          return key === 'containers-with-products' || key === 'containers'
+        },
+        type: 'active'
+      })
     },
   })
 }
@@ -920,8 +930,13 @@ export function useDeleteContainer() {
   return useMutation({
     mutationFn: deleteContainer,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['containers-with-products'] })
-      queryClient.invalidateQueries({ queryKey: ['containers'] })
+      queryClient.refetchQueries({
+        predicate: (query) => {
+          const key = query.queryKey[0]
+          return key === 'containers-with-products' || key === 'containers'
+        },
+        type: 'active'
+      })
     },
   })
 }
@@ -932,10 +947,13 @@ export function useAddProductToContainer() {
   return useMutation({
     mutationFn: addProductToContainer,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['containers-with-products'] })
-      queryClient.invalidateQueries({ queryKey: ['containers'] })
-      queryClient.invalidateQueries({ queryKey: ['inventory'] })
-      queryClient.invalidateQueries({ queryKey: ['movements'] }) // Agregado para logs
+      queryClient.refetchQueries({
+        predicate: (query) => {
+          const key = query.queryKey[0]
+          return key === 'containers-with-products' || key === 'containers' || key === 'inventory' || key === 'movements'
+        },
+        type: 'active'
+      })
     },
   })
 }
@@ -946,8 +964,13 @@ export function useDeleteProductFromContainer() {
   return useMutation({
     mutationFn: deleteProductFromContainer,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['containers-with-products'] })
-      queryClient.invalidateQueries({ queryKey: ['containers'] })
+      queryClient.refetchQueries({
+        predicate: (query) => {
+          const key = query.queryKey[0]
+          return key === 'containers-with-products' || key === 'containers'
+        },
+        type: 'active'
+      })
     },
   })
 }
@@ -958,10 +981,13 @@ export function useRemoveProductFromContainer() {
   return useMutation({
     mutationFn: removeProductFromContainer,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['containers-with-products'] })
-      queryClient.invalidateQueries({ queryKey: ['containers'] })
-      queryClient.invalidateQueries({ queryKey: ['movements'] })
-      queryClient.invalidateQueries({ queryKey: ['inventory'] })
+      queryClient.refetchQueries({
+        predicate: (query) => {
+          const key = query.queryKey[0]
+          return key === 'containers-with-products' || key === 'containers' || key === 'movements' || key === 'inventory'
+        },
+        type: 'active'
+      })
     },
   })
 }
@@ -972,8 +998,13 @@ export function useUpdateProductInContainer() {
   return useMutation({
     mutationFn: updateProductInContainer,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['containers-with-products'] })
-      queryClient.invalidateQueries({ queryKey: ['containers'] })
+      queryClient.refetchQueries({
+        predicate: (query) => {
+          const key = query.queryKey[0]
+          return key === 'containers-with-products' || key === 'containers'
+        },
+        type: 'active'
+      })
     },
   })
 }
@@ -984,10 +1015,13 @@ export function useTransferProduct() {
   return useMutation({
     mutationFn: transferProduct,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['containers-with-products'] })
-      queryClient.invalidateQueries({ queryKey: ['containers'] })
-      queryClient.invalidateQueries({ queryKey: ['movements'] })
-      queryClient.invalidateQueries({ queryKey: ['inventory'] })
+      queryClient.refetchQueries({
+        predicate: (query) => {
+          const key = query.queryKey[0]
+          return key === 'containers-with-products' || key === 'containers' || key === 'movements' || key === 'inventory'
+        },
+        type: 'active'
+      })
     },
   })
 }

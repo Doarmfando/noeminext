@@ -6,7 +6,6 @@ import { AddProductToContainerModal } from './AddProductToContainerModal'
 import { TransferProductModal } from './TransferProductModal'
 import { EditProductInContainerModal } from './EditProductInContainerModal'
 import { RemoveProductFromContainerModal } from './RemoveProductFromContainerModal'
-import { useQueryClient } from '@tanstack/react-query'
 import { useContainersWithProducts } from '@/lib/hooks/use-containers'
 
 interface ContainerDetailModalProps {
@@ -20,8 +19,6 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
   const [showEditModal, setShowEditModal] = useState(false)
   const [showRemoveModal, setShowRemoveModal] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
-
-  const queryClient = useQueryClient()
 
   // Obtener los datos actualizados del contenedor
   const { data: allContainers = [] } = useContainersWithProducts({})
@@ -50,24 +47,24 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
   const handleTransferSuccess = () => {
     setShowTransferModal(false)
     setSelectedProduct(null)
-    queryClient.invalidateQueries({ queryKey: ['containers-with-products'] })
+    // El mutation ya hace refetch, no duplicar aquí
   }
 
   const handleEditSuccess = () => {
     setShowEditModal(false)
     setSelectedProduct(null)
-    queryClient.invalidateQueries({ queryKey: ['containers-with-products'] })
+    // El mutation ya hace refetch, no duplicar aquí
   }
 
   const handleRemoveSuccess = () => {
     setShowRemoveModal(false)
     setSelectedProduct(null)
-    queryClient.invalidateQueries({ queryKey: ['containers-with-products'] })
+    // El mutation ya hace refetch, no duplicar aquí
   }
 
   const handleAddSuccess = () => {
     setShowAddProduct(false)
-    queryClient.invalidateQueries({ queryKey: ['containers-with-products'] })
+    // El mutation ya hace refetch, no duplicar aquí
   }
 
   const getStatusDisplay = (estadoProducto: any) => {
