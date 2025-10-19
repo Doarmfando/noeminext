@@ -27,6 +27,7 @@ export interface CreateMovementData {
   lote_id?: string  // ID del lote específico (detalle_contenedor)
   numero_empaquetados?: number  // Para entradas: en cuántos empaquetados dividir
   fecha_vencimiento?: string  // Para entradas: fecha de vencimiento del lote
+  estado_producto_id?: string  // Para entradas: estado del producto
   actualizar_precio_lote?: boolean  // Flag para indicar si se debe actualizar el precio del lote
 }
 
@@ -301,6 +302,7 @@ async function createMovement(data: CreateMovementData) {
           empaquetado: String(cantidadPorEmpaquetado),
           precio_real_unidad: data.precio_real,
           fecha_vencimiento: data.fecha_vencimiento || null,
+          estado_producto_id: data.estado_producto_id || null,
           visible: true,
         })
     }

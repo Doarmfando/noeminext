@@ -10,6 +10,7 @@ import {
   type MovementType,
 } from '@/lib/hooks/use-movements'
 import { useInventory, useContainers, useProductContainers } from '@/lib/hooks/use-inventory'
+import { useProductStates } from '@/lib/hooks/use-product-states'
 
 interface MovementFormModalProps {
   onClose: () => void
@@ -20,6 +21,7 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
   const { data: inventory = [] } = useInventory()
   const { data: containers = [] } = useContainers()
   const createMutation = useCreateMovement()
+  const { data: productStates = [] } = useProductStates()
 
   const products = Array.from(
     new Map(inventory.map((item: any) => [item.producto_id, item.productos])).values()
@@ -41,8 +43,10 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
   const [empaquetadosASacar, setEmpaquetadosASacar] = useState<number>(0)
   const [empaquetadosAIngresar, setEmpaquetadosAIngresar] = useState<number>(0)
   const [fechaVencimiento, setFechaVencimiento] = useState<string>('')
+  const [estadoProductoId, setEstadoProductoId] = useState<string>('')
   const [precioOriginalLote, setPrecioOriginalLote] = useState<number | null>(null)
   const [fechaOriginalLote, setFechaOriginalLote] = useState<string>('')
+  const [estadoOriginalLote, setEstadoOriginalLote] = useState<string>('')
 
   // Obtener contenedores y precio del producto seleccionado
   const { data: productContainers } = useProductContainers(formData.producto_id || '')
@@ -87,9 +91,11 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
       // Guardar valores originales del lote
       const precioLote = parseFloat(loteActual.precio_real_unidad) || 0
       const fechaLote = loteActual.fecha_vencimiento || ''
+      const estadoLote = loteActual.estado_producto_id || ''
 
       setPrecioOriginalLote(precioLote)
       setFechaOriginalLote(fechaLote)
+      setEstadoOriginalLote(estadoLote)
 
       // Auto-rellenar precio
       setFormData(prev => ({
@@ -99,18 +105,40 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
 
       // Auto-rellenar fecha de vencimiento
       setFechaVencimiento(fechaLote)
+
+      // Auto-rellenar estado
+      setEstadoProductoId(estadoLote)
     } else {
       // Limpiar cuando no hay lote seleccionado
       setPrecioOriginalLote(null)
       setFechaOriginalLote('')
+      setEstadoOriginalLote('')
     }
   }, [loteActual])
+
+  // Establecer estado "Fresco" por defecto para productos nuevos (entrada sin lote)
+  useEffect(() => {
+    if (
+      formData.tipo_movimiento === 'entrada' &&
+      !loteSeleccionado &&
+      productStates.length > 0 &&
+      !estadoProductoId
+    ) {
+      const estadoFresco = productStates.find(
+        (e: any) => e.nombre.toLowerCase() === 'fresco'
+      )
+      if (estadoFresco) {
+        setEstadoProductoId(estadoFresco.id)
+      }
+    }
+  }, [formData.tipo_movimiento, loteSeleccionado, productStates, estadoProductoId])
 
   // Detectar si se modificaron datos del lote (con comparación tolerante para decimales)
   const precioModificado = loteActual && precioOriginalLote !== null &&
     Math.abs((formData.precio_real || 0) - precioOriginalLote) > 0.01
   const fechaModificada = loteActual && fechaOriginalLote && fechaVencimiento !== fechaOriginalLote
-  const datosDelLoteModificados = precioModificado || fechaModificada
+  const estadoModificado = loteActual && estadoOriginalLote && estadoProductoId !== estadoOriginalLote
+  const datosDelLoteModificados = precioModificado || fechaModificada || estadoModificado
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -162,6 +190,8 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
         numero_empaquetados: crearNuevoLote ? numeroEmpaquetados : undefined,
         // Solo enviar fecha_vencimiento cuando se va a crear un nuevo lote
         fecha_vencimiento: crearNuevoLote && fechaVencimiento ? fechaVencimiento : undefined,
+        // Solo enviar estado_producto_id cuando se va a crear un nuevo lote
+        estado_producto_id: crearNuevoLote && estadoProductoId ? estadoProductoId : undefined,
         // IMPORTANTE: Siempre enviar precio_real para el movimiento, pero con flag para no sobrescribir lote
         actualizar_precio_lote: precioModificado, // Flag para indicar si se debe actualizar el precio del lote
       }
@@ -655,6 +685,35 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
                     </p>
                   )}
                 </div>
+
+                {/* Estado del Producto cuando hay lote seleccionado */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Estado del Producto
+                  </label>
+                  <select
+                    value={estadoProductoId}
+                    onChange={e => setEstadoProductoId(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Sin estado</option>
+                    {productStates.map((estado: any) => (
+                      <option key={estado.id} value={estado.id}>
+                        {estado.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  {!estadoModificado && estadoProductoId && loteActual && (
+                    <p className="text-xs text-green-600 mt-1">
+                      ✓ Estado del lote aplicado automáticamente
+                    </p>
+                  )}
+                  {estadoModificado && (
+                    <p className="text-xs text-orange-600 mt-1 font-medium">
+                      ⚠️ Modificaste el estado - Se creará un NUEVO LOTE
+                    </p>
+                  )}
+                </div>
               </>
             )
           })()}
@@ -685,8 +744,8 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
                 />
               </div>
 
-              {/* Empaquetados y Fecha de Vencimiento */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Empaquetados, Fecha de Vencimiento y Estado */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Dividir en Empaquetados *
@@ -718,6 +777,27 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Opcional - dejar en blanco si no aplica
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Estado del Producto
+                  </label>
+                  <select
+                    value={estadoProductoId}
+                    onChange={e => setEstadoProductoId(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Sin estado</option>
+                    {productStates.map((estado: any) => (
+                      <option key={estado.id} value={estado.id}>
+                        {estado.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-green-600 mt-1">
+                    ✓ Por defecto: Fresco
                   </p>
                 </div>
               </div>
@@ -791,9 +871,15 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
                 ⚠️ Datos modificados
               </p>
               <p className="text-xs text-orange-700 mt-1">
-                Modificaste {precioModificado ? 'el precio' : ''}{' '}
-                {precioModificado && fechaModificada ? 'y ' : ''}
-                {fechaModificada ? 'la fecha' : ''}.
+                Modificaste{' '}
+                {[
+                  precioModificado ? 'el precio' : '',
+                  fechaModificada ? 'la fecha' : '',
+                  estadoModificado ? 'el estado' : '',
+                ]
+                  .filter(Boolean)
+                  .join(', ')
+                  .replace(/,([^,]*)$/, ' y$1')}.
                 Al registrar, se creará un <strong>nuevo lote</strong> con estos datos.
               </p>
             </div>

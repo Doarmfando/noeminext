@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { X, Save } from 'lucide-react'
 import { useUpdateProductInContainer } from '@/lib/hooks/use-containers'
+import { useProductStates } from '@/lib/hooks/use-product-states'
 
 interface EditProductInContainerModalProps {
   product: any
@@ -29,8 +30,10 @@ export function EditProductInContainerModal({
   const [fechaVencimiento, setFechaVencimiento] = useState(
     product.fecha_vencimiento ? product.fecha_vencimiento.split('T')[0] : ''
   )
+  const [estadoProductoId, setEstadoProductoId] = useState(product.estado_producto_id || '')
 
   const updateMutation = useUpdateProductInContainer()
+  const { data: productStates = [] } = useProductStates()
 
   const cantidadTotal = numeroEmpaquetados * cantidadPorEmpaquetado
   const cambioEmpaquetados = numeroEmpaquetados - numeroEmpaquetadosActual
@@ -55,6 +58,7 @@ export function EditProductInContainerModal({
         numero_empaquetados: numeroEmpaquetados,
         precio_real_unidad: precioRealUnidad,
         fecha_vencimiento: fechaVencimiento || null,
+        estado_producto_id: estadoProductoId || null,
         // Datos para calcular movimiento automático
         producto_id: product.producto_id,
         contenedor_id: container.id,
@@ -207,6 +211,28 @@ export function EditProductInContainerModal({
             />
             <p className="text-xs text-gray-500 mt-1">
               {fechaVencimiento ? '📅 Fecha establecida' : 'ℹ️ Opcional - dejar en blanco si no aplica'}
+            </p>
+          </div>
+
+          {/* Estado del producto */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Estado del Producto
+            </label>
+            <select
+              value={estadoProductoId}
+              onChange={e => setEstadoProductoId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Sin estado</option>
+              {productStates.map((estado: any) => (
+                <option key={estado.id} value={estado.id}>
+                  {estado.nombre}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Estado de conservación del producto
             </p>
           </div>
 

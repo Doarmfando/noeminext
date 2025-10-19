@@ -361,11 +361,12 @@ async function addProductToContainer(data: {
   numero_empaquetados: number // en cuántos empaquetados dividir
   precio_real_unidad: number // precio por kg/unidad
   fecha_vencimiento?: string | null
+  estado_producto_id?: string | null
 }) {
   const supabase = createClient()
 
-  // VERIFICAR SI YA EXISTE EL PRODUCTO EN ESTE CONTENEDOR CON LA MISMA FECHA DE VENCIMIENTO
-  // Un producto puede estar varias veces en el mismo contenedor si tiene diferentes fechas de vencimiento (lotes diferentes)
+  // VERIFICAR SI YA EXISTE EL PRODUCTO EN ESTE CONTENEDOR CON LA MISMA FECHA DE VENCIMIENTO Y ESTADO
+  // Un producto puede estar varias veces en el mismo contenedor si tiene diferentes fechas de vencimiento o estados (lotes diferentes)
   let query = supabase
     .from('detalle_contenedor')
     .select('id, cantidad, empaquetado')
@@ -378,6 +379,13 @@ async function addProductToContainer(data: {
     query = query.eq('fecha_vencimiento', data.fecha_vencimiento)
   } else {
     query = query.is('fecha_vencimiento', null)
+  }
+
+  // Comparar estado del producto (null = null también se considera igual)
+  if (data.estado_producto_id) {
+    query = query.eq('estado_producto_id', data.estado_producto_id)
+  } else {
+    query = query.is('estado_producto_id', null)
   }
 
   const { data: existingProduct, error: checkError } = await query.maybeSingle()
@@ -476,6 +484,7 @@ async function addProductToContainer(data: {
       empaquetado: cantidadPorEmpaquetado.toString(), // guardar cantidad por empaquetado
       precio_real_unidad: data.precio_real_unidad,
       fecha_vencimiento: data.fecha_vencimiento,
+      estado_producto_id: data.estado_producto_id,
       visible: true,
     })
     .select()
@@ -526,6 +535,7 @@ async function updateProductInContainer(data: {
   numero_empaquetados: number
   precio_real_unidad: number
   fecha_vencimiento?: string | null
+  estado_producto_id?: string | null
   // Datos anteriores para calcular movimiento
   producto_id: string
   contenedor_id: string
@@ -545,6 +555,7 @@ async function updateProductInContainer(data: {
       empaquetado: cantidadPorEmpaquetado.toString(), // guardar cantidad por empaquetado
       precio_real_unidad: data.precio_real_unidad,
       fecha_vencimiento: data.fecha_vencimiento,
+      estado_producto_id: data.estado_producto_id,
     })
     .eq('id', data.id)
     .select()
