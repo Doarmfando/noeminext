@@ -93,8 +93,8 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
             </div>
           </div>
 
-          {/* Vencimiento y Valor */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Vencimiento, Almacenamiento y Valor */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Fecha de Vencimiento */}
             <div className="bg-orange-50 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
@@ -106,6 +106,69 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
                   ? new Date(product.fecha_vencimiento).toLocaleDateString('es-PE')
                   : 'Sin fecha de vencimiento'}
               </p>
+              {product.fecha_vencimiento && (() => {
+                const fechaVenc = new Date(product.fecha_vencimiento)
+                const hoy = new Date()
+                hoy.setHours(0, 0, 0, 0)
+                fechaVenc.setHours(0, 0, 0, 0)
+                const diffTime = fechaVenc.getTime() - hoy.getTime()
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+                let statusText = ''
+                let textColor = 'text-gray-700'
+
+                if (diffDays < 0) {
+                  statusText = `Vencido hace ${Math.abs(diffDays)} día(s)`
+                  textColor = 'text-red-700'
+                } else if (diffDays === 0) {
+                  statusText = 'Vence HOY'
+                  textColor = 'text-orange-700'
+                } else {
+                  statusText = `Vence en ${diffDays} día(s)`
+                  textColor = diffDays <= 7 ? 'text-orange-700' : 'text-green-700'
+                }
+
+                return (
+                  <p className={`text-sm font-semibold mt-2 ${textColor}`}>
+                    {statusText}
+                  </p>
+                )
+              })()}
+            </div>
+
+            {/* Tiempo de Almacenamiento */}
+            <div className="bg-blue-50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                Almacenamiento
+              </h3>
+              {product.created_at ? (() => {
+                const fechaIngreso = new Date(product.created_at)
+                const hoy = new Date()
+                hoy.setHours(0, 0, 0, 0)
+                fechaIngreso.setHours(0, 0, 0, 0)
+                const diffTime = hoy.getTime() - fechaIngreso.getTime()
+                const diasAlmacenado = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+
+                return (
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {diasAlmacenado >= 0 ? diasAlmacenado : 0} día{diasAlmacenado !== 1 ? 's' : ''}
+                    </p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Desde: {fechaIngreso.toLocaleDateString('es-PE')}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {diasAlmacenado >= 0 ? diasAlmacenado : 0} días almacenado
+                    </p>
+                  </div>
+                )
+              })() : (
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">0 días</p>
+                  <p className="text-xs text-gray-500 mt-2">0 días almacenado</p>
+                </div>
+              )}
             </div>
 
             {/* Valor Total */}

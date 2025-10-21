@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { X, Plus, Search, Pin } from 'lucide-react'
 import { useInventory, useProductContainers } from '@/lib/hooks/use-inventory'
 import { useAddProductToContainer } from '@/lib/hooks/use-containers'
 import { ProductFormModal } from '@/app/(auth)/inventory/components/ProductFormModal'
 import { useToast } from '@/lib/contexts/toast-context'
-import { useProductStates } from '@/lib/hooks/use-product-states'
 
 interface AddProductToContainerModalProps {
   container: any
@@ -229,31 +228,17 @@ function AddProductForm({
 }) {
   const addMutation = useAddProductToContainer()
   const { showSuccess, showError } = useToast()
-  const { data: productStates = [] } = useProductStates()
   const [formData, setFormData] = useState({
     cantidad_total: 0,
     numero_empaquetados: 1,
     precio_real_unidad: product.precio_estimado || 0,
     fecha_vencimiento: '',
-    estado_producto_id: '',
   })
   const [errors, setErrors] = useState({
     cantidad_total: '',
     numero_empaquetados: '',
     precio_real_unidad: '',
   })
-
-  // Establecer estado "Fresco" por defecto cuando se cargan los estados
-  useEffect(() => {
-    if (productStates.length > 0 && !formData.estado_producto_id) {
-      const estadoFresco = productStates.find(
-        (e: any) => e.nombre.toLowerCase() === 'fresco'
-      )
-      if (estadoFresco) {
-        setFormData(prev => ({ ...prev, estado_producto_id: estadoFresco.id }))
-      }
-    }
-  }, [productStates])
 
   const cantidadPorEmpaquetado = formData.cantidad_total / formData.numero_empaquetados
 
@@ -292,7 +277,6 @@ function AddProductForm({
         numero_empaquetados: formData.numero_empaquetados,
         precio_real_unidad: formData.precio_real_unidad,
         fecha_vencimiento: formData.fecha_vencimiento || null,
-        estado_producto_id: formData.estado_producto_id || null,
       })
 
       showSuccess('Producto agregado exitosamente al contenedor')
@@ -443,27 +427,6 @@ function AddProductForm({
           />
           <p className="text-xs text-gray-500 mt-1">
             Opcional - dejar en blanco si no aplica
-          </p>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Estado del Producto
-          </label>
-          <select
-            value={formData.estado_producto_id}
-            onChange={e => setFormData({ ...formData, estado_producto_id: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">Sin estado</option>
-            {productStates.map((estado: any) => (
-              <option key={estado.id} value={estado.id}>
-                {estado.nombre}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-gray-500 mt-1">
-            Por defecto: Fresco
           </p>
         </div>
       </div>

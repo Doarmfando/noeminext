@@ -67,26 +67,22 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
     // El mutation ya hace refetch, no duplicar aquí
   }
 
-  const getStatusDisplay = (estadoProducto: any) => {
-    // Si tiene estado de la BD, mostrarlo
-    if (estadoProducto?.nombre) {
-      const nombre = estadoProducto.nombre.toLowerCase()
+  const getStorageDays = (createdAt: string) => {
+    if (!createdAt) return null
 
-      if (nombre.includes('vencido')) {
-        return { label: estadoProducto.nombre, color: 'bg-red-100 text-red-800', icon: '🔴' }
-      } else if (nombre.includes('por vencer')) {
-        return { label: estadoProducto.nombre, color: 'bg-orange-100 text-orange-800', icon: '🟠' }
-      } else if (nombre.includes('fresco')) {
-        return { label: estadoProducto.nombre, color: 'bg-green-100 text-green-800', icon: '🟢' }
-      } else if (nombre.includes('congelado')) {
-        return { label: estadoProducto.nombre, color: 'bg-blue-100 text-blue-800', icon: '🔵' }
-      } else {
-        return { label: estadoProducto.nombre, color: 'bg-gray-100 text-gray-800', icon: '⚪' }
-      }
+    const fechaIngreso = new Date(createdAt)
+    const hoy = new Date()
+    hoy.setHours(0, 0, 0, 0)
+    fechaIngreso.setHours(0, 0, 0, 0)
+
+    const diffTime = hoy.getTime() - fechaIngreso.getTime()
+    const diasAlmacenado = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+
+    // Siempre retornar los días, incluso si es 0
+    return {
+      dias: diasAlmacenado >= 0 ? diasAlmacenado : 0,
+      label: `${diasAlmacenado >= 0 ? diasAlmacenado : 0} días almacenado`
     }
-
-    // Si no hay estado, retornar null para no mostrar nada
-    return null
   }
 
   return (
@@ -108,7 +104,7 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
 
         {/* Stats */}
         <div className="p-6 bg-gray-50 border-b border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-white rounded-lg p-4 border border-gray-200">
               <p className="text-sm font-medium text-gray-600">Total Productos</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
@@ -125,6 +121,39 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
               <p className="text-sm font-medium text-gray-600">Capacidad</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
                 {container.capacidad ? `${container.capacidad} unid.` : 'Sin límite'}
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-gray-200">
+              <p className="text-sm font-medium text-gray-600">Almacenamiento</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                {(() => {
+                  const nuevos = productos.filter((p: any) => {
+                    const storage = getStorageDays(p.created_at)
+                    return storage && storage.dias <= 3
+                  }).length
+                  const antiguos = productos.filter((p: any) => {
+                    const storage = getStorageDays(p.created_at)
+                    return storage && storage.dias >= 30
+                  }).length
+
+                  if (antiguos > 0) {
+                    return (
+                      <span className="flex items-center gap-1">
+                        <span className="text-orange-600">{antiguos}</span>
+                        <span className="text-xs text-gray-500">antiguos</span>
+                      </span>
+                    )
+                  } else if (nuevos > 0) {
+                    return (
+                      <span className="flex items-center gap-1">
+                        <span className="text-blue-600">{nuevos}</span>
+                        <span className="text-xs text-gray-500">nuevos</span>
+                      </span>
+                    )
+                  } else {
+                    return <span className="text-gray-400 text-sm">Normal</span>
+                  }
+                })()}
               </p>
             </div>
           </div>
@@ -171,8 +200,8 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                       Vencimiento
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Estado
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                      Almacenamiento
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                       Precio
@@ -188,7 +217,6 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
                     const unit = product.unidades_medida
                     const precioUnitario = item.precio_real_unidad || 0
                     const valorTotal = (item.cantidad || 0) * precioUnitario
-                    const status = getStatusDisplay(item.estados_producto)
 
                     // Calcular número de empaquetados correctamente
                     const cantidadTotal = item.cantidad || 0
@@ -278,17 +306,17 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
                             <span className="text-gray-400">-</span>
                           )}
                         </td>
-                        <td className="px-4 py-3">
-                          {status ? (
-                            <span
-                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${status.color}`}
-                            >
-                              <span>{status.icon}</span>
-                              {status.label}
-                            </span>
-                          ) : (
-                            <span className="text-sm text-gray-400">-</span>
-                          )}
+                        <td className="px-4 py-3 text-center">
+                          {(() => {
+                            const storageDays = getStorageDays(item.created_at)
+                            return storageDays ? (
+                              <span className="text-sm text-gray-700">
+                                {storageDays.dias} días
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )
+                          })()}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="text-sm text-gray-900">
