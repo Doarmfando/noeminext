@@ -148,6 +148,15 @@ async function getInventory(filters: InventoryFilters = {}) {
         // Usar el primer lote como base y agregar totales
         const primerLote = lotes[0]
 
+        // Encontrar la fecha de vencimiento más próxima (de los lotes que tienen fecha)
+        const fechasVencimiento = lotes
+          .map(lote => lote.fecha_vencimiento)
+          .filter(fecha => fecha != null)
+
+        const fechaVencimientoProxima = fechasVencimiento.length > 0
+          ? fechasVencimiento.sort((a, b) => new Date(a).getTime() - new Date(b).getTime())[0]
+          : null
+
         inventarioMap.set(key, {
           id: key, // ID único por combinación producto-contenedor
           producto_id: producto.id,
@@ -158,6 +167,7 @@ async function getInventory(filters: InventoryFilters = {}) {
           totalLotes: lotes.length, // Cuántos lotes diferentes hay
           precio_real_unidad: precioPromedio, // Precio promedio de todos los lotes
           valor_total: valorTotal, // Valor total calculado
+          fecha_vencimiento: fechaVencimientoProxima, // Fecha de vencimiento más próxima
           visible: true,
           created_at: primerLote.created_at,
           productos: productoEnriquecido,
@@ -389,6 +399,31 @@ export function useProductContainerPrice(productoId: string, contenedorId: strin
       const precioPromedio = cantidadTotal > 0 ? valorTotal / cantidadTotal : null
 
       return precioPromedio
+    },
+    enabled: !!productoId && !!contenedorId,
+  })
+}
+
+// Hook para obtener todos los lotes de un producto en un contenedor
+export function useProductContainerBatches(productoId: string, contenedorId: string) {
+  const supabase = createClient()
+
+  return useQuery({
+    queryKey: ['product-container-batches', productoId, contenedorId],
+    queryFn: async () => {
+      if (!productoId || !contenedorId) return []
+
+      // Obtener todos los lotes del producto en ese contenedor con todos sus detalles
+      const { data: lotes, error } = await supabase
+        .from('detalle_contenedor')
+        .select('*')
+        .eq('producto_id', productoId)
+        .eq('contenedor_id', contenedorId)
+        .eq('visible', true)
+        .order('fecha_vencimiento', { ascending: true, nullsFirst: false })
+
+      if (error) throw error
+      return lotes || []
     },
     enabled: !!productoId && !!contenedorId,
   })

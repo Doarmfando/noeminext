@@ -795,7 +795,6 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
                 {[
                   precioModificado ? 'el precio' : '',
                   fechaModificada ? 'la fecha' : '',
-                  estadoModificado ? 'el estado' : '',
                 ]
                   .filter(Boolean)
                   .join(', ')

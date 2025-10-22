@@ -67,6 +67,13 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
     // El mutation ya hace refetch, no duplicar aquí
   }
 
+  // Formatear fecha sin problema de zona horaria
+  const formatDate = (dateString: string) => {
+    if (!dateString) return ''
+    const [year, month, day] = dateString.split('T')[0].split('-')
+    return `${day}/${month}/${year}`
+  }
+
   const getStorageDays = (createdAt: string) => {
     if (!createdAt) return null
 
@@ -252,7 +259,9 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
                         <td className="px-4 py-3 text-sm">
                           {item.fecha_vencimiento ? (
                             (() => {
-                              const fechaVenc = new Date(item.fecha_vencimiento)
+                              // Parsear fecha sin zona horaria
+                              const [year, month, day] = item.fecha_vencimiento.split('T')[0].split('-')
+                              const fechaVenc = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
                               const hoy = new Date()
                               hoy.setHours(0, 0, 0, 0)
                               fechaVenc.setHours(0, 0, 0, 0)
@@ -294,7 +303,7 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
                               return (
                                 <div className={`inline-flex flex-col gap-1 px-2.5 py-1.5 rounded-lg ${bgColor}`}>
                                   <span className={`text-xs font-medium ${textColor}`}>
-                                    {fechaVenc.toLocaleDateString('es-PE')}
+                                    {formatDate(item.fecha_vencimiento)}
                                   </span>
                                   <span className={`text-xs font-semibold ${textColor}`}>
                                     {statusText}

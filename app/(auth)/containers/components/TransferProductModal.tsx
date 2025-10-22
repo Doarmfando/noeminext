@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { X, ArrowRightLeft } from 'lucide-react'
 import { useContainersWithProducts, useTransferProduct } from '@/lib/hooks/use-containers'
+import { useToast } from '@/lib/contexts/toast-context'
 
 interface TransferProductModalProps {
   product: any
@@ -30,6 +31,7 @@ export function TransferProductModal({
 
   const { data: containers = [] } = useContainersWithProducts()
   const transferMutation = useTransferProduct()
+  const { showSuccess, showError } = useToast()
 
   // Filtrar contenedores (excluir el actual)
   const availableContainers = containers.filter(c => c.id !== currentContainer.id)
@@ -40,12 +42,12 @@ export function TransferProductModal({
     e.preventDefault()
 
     if (!destinoContenedorId) {
-      alert('Selecciona un contenedor de destino')
+      showError('Selecciona un contenedor de destino')
       return
     }
 
     if (numeroEmpaquetados <= 0 || numeroEmpaquetados > numeroEmpaquetadosActual) {
-      alert(
+      showError(
         'El número de empaquetados debe ser mayor a 0 y no exceder los empaquetados disponibles'
       )
       return
@@ -60,11 +62,11 @@ export function TransferProductModal({
         numero_empaquetados_transferir: numeroEmpaquetados,
       })
 
-      alert('Producto transferido exitosamente')
+      showSuccess('Producto transferido exitosamente')
       onSuccess()
     } catch (error: any) {
       console.error('Error al transferir producto:', error)
-      alert(error.message || 'Error al transferir el producto')
+      showError(error.message || 'Error al transferir el producto')
     } finally {
       setIsSubmitting(false)
     }

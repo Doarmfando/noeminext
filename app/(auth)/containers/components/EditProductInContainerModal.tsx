@@ -35,6 +35,19 @@ export function EditProductInContainerModal({
   const cantidadTotal = numeroEmpaquetados * cantidadPorEmpaquetado
   const cambioEmpaquetados = numeroEmpaquetados - numeroEmpaquetadosActual
 
+  // Detectar si se va a crear un nuevo lote
+  const precioOriginal = product.precio_real_unidad || 0
+  const fechaOriginal = product.fecha_vencimiento ? product.fecha_vencimiento.split('T')[0] : ''
+
+  const cambioPrecio = Math.abs(precioRealUnidad - precioOriginal) > 0.01
+  const cambioFecha = fechaVencimiento !== fechaOriginal
+  const nuevaCantidadPorEmpaquetado = cantidadTotal / numeroEmpaquetados
+  const cambioEmpaquetadoUnidad = Math.abs(nuevaCantidadPorEmpaquetado - cantidadPorEmpaquetado) > 0.01
+
+  // Solo NO se crea nuevo lote si ÚNICAMENTE aumentan empaquetados
+  const soloAumentanEmpaquetados = !cambioPrecio && !cambioFecha && !cambioEmpaquetadoUnidad
+  const seCrearaNuevoLote = !soloAumentanEmpaquetados
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -64,14 +77,21 @@ export function EditProductInContainerModal({
 
       // El mutation ya hace refetch, no duplicar aquí
 
-      if (cambioEmpaquetados !== 0) {
+      if (seCrearaNuevoLote) {
         alert(
-          `Producto actualizado exitosamente.\nSe generó un movimiento automático de ${
+          `✅ Nuevo lote creado exitosamente.\n\nEl lote anterior fue cerrado y se creó uno nuevo con los datos actualizados:\n` +
+          `${cambioPrecio ? `- Nuevo precio: S/. ${precioRealUnidad.toFixed(2)}\n` : ''}` +
+          `${cambioFecha ? `- Nueva fecha de vencimiento: ${fechaVencimiento || 'Sin fecha'}\n` : ''}` +
+          `${cambioEmpaquetadoUnidad ? `- Nueva cantidad por empaquetado: ${nuevaCantidadPorEmpaquetado.toFixed(2)}\n` : ''}`
+        )
+      } else if (cambioEmpaquetados !== 0) {
+        alert(
+          `✅ Lote actualizado exitosamente.\n\nSe generó un movimiento automático de ${
             cambioEmpaquetados > 0 ? 'entrada' : 'salida'
           } por ${Math.abs(cambioEmpaquetados)} empaquetados.`
         )
       } else {
-        alert('Producto actualizado exitosamente')
+        alert('✅ Producto actualizado exitosamente')
       }
 
       onSuccess()
@@ -209,6 +229,58 @@ export function EditProductInContainerModal({
               {fechaVencimiento ? '📅 Fecha establecida' : 'ℹ️ Opcional - dejar en blanco si no aplica'}
             </p>
           </div>
+
+          {/* Mensaje de advertencia sobre nuevo lote */}
+          {seCrearaNuevoLote && (
+            <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 mt-0.5">
+                  <span className="text-2xl">🆕</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-purple-900 mb-2">
+                    ⚠️ Se creará un NUEVO LOTE
+                  </p>
+                  <p className="text-xs text-purple-800 mb-2">
+                    Detectamos cambios en los siguientes campos que definen un lote:
+                  </p>
+                  <ul className="text-xs text-purple-700 space-y-1 ml-4">
+                    {cambioPrecio && (
+                      <li>• Precio por unidad: S/. {precioOriginal.toFixed(2)} → S/. {precioRealUnidad.toFixed(2)}</li>
+                    )}
+                    {cambioFecha && (
+                      <li>• Fecha de vencimiento: {fechaOriginal || 'Sin fecha'} → {fechaVencimiento || 'Sin fecha'}</li>
+                    )}
+                    {cambioEmpaquetadoUnidad && (
+                      <li>• Cantidad por empaquetado: {cantidadPorEmpaquetado.toFixed(2)} → {nuevaCantidadPorEmpaquetado.toFixed(2)} {product.productos?.unidades_medida?.abreviatura || 'unid'}</li>
+                    )}
+                  </ul>
+                  <p className="text-xs text-purple-800 mt-2 font-semibold">
+                    El lote anterior se cerrará y se creará uno nuevo con los datos actualizados.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Mensaje cuando solo se actualiza el lote existente */}
+          {!seCrearaNuevoLote && cambioEmpaquetados !== 0 && (
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-300 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 mt-0.5">
+                  <span className="text-2xl">♻️</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-blue-900 mb-1">
+                    Se actualizará el lote existente
+                  </p>
+                  <p className="text-xs text-blue-700">
+                    Los empaquetados cambiarán de {numeroEmpaquetadosActual} a {numeroEmpaquetados} unidades, manteniendo el mismo lote.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4">
             <button
