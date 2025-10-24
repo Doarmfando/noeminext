@@ -528,7 +528,7 @@ async function addProductToContainer(data: {
   return newDetail
 }
 
-// Actualizar producto en contenedor con detección de cambios
+// Actualizar producto en contenedor (siempre edita el lote existente)
 async function updateProductInContainer(data: {
   id: string
   cantidad_total: number
@@ -544,147 +544,10 @@ async function updateProductInContainer(data: {
 }) {
   const supabase = createClient()
 
-  // OBTENER los datos actuales del lote para comparar
-  const { data: loteActual, error: fetchError } = await supabase
-    .from('detalle_contenedor')
-    .select('precio_real_unidad, fecha_vencimiento, empaquetado')
-    .eq('id', data.id)
-    .single()
-
-  if (fetchError) throw fetchError
-
   // CALCULAR cantidad por empaquetado
   const cantidadPorEmpaquetadoNueva = data.cantidad_total / data.numero_empaquetados
-  const cantidadPorEmpaquetadoActual = parseFloat(loteActual.empaquetado || '0') || 0
 
-  // Normalizar fechas para comparación (solo la parte de fecha, sin hora)
-  const fechaNuevaNormalizada = data.fecha_vencimiento ? data.fecha_vencimiento.split('T')[0] : null
-  const fechaActualNormalizada = loteActual.fecha_vencimiento ? loteActual.fecha_vencimiento.split('T')[0] : null
-
-  // DETECTAR si cambió precio, fecha de vencimiento o empaquetado (lo que define un nuevo lote)
-  const cambioPrecio = Math.abs(data.precio_real_unidad - (loteActual.precio_real_unidad || 0)) > 0.01
-  const cambioFechaVencimiento = fechaNuevaNormalizada !== fechaActualNormalizada
-  const cambioEmpaquetadoUnitario = Math.abs(cantidadPorEmpaquetadoNueva - cantidadPorEmpaquetadoActual) > 0.01
-
-  // REGLA: Solo actualizar lote existente si ÚNICAMENTE aumentan empaquetados (sin cambiar precio, fecha ni empaquetado unitario)
-  // En todos los demás casos → crear NUEVO LOTE
-  const soloAumentanEmpaquetados = !cambioPrecio && !cambioFechaVencimiento && !cambioEmpaquetadoUnitario
-
-  // Si cambió CUALQUIER COSA que defina el lote → crear NUEVO LOTE
-  if (!soloAumentanEmpaquetados) {
-    // 1. Marcar el lote anterior como eliminado (soft delete)
-    await supabase
-      .from('detalle_contenedor')
-      .update({
-        visible: false,
-        cantidad: 0,
-        empaquetado: "0"
-      })
-      .eq('id', data.id)
-
-    // 2. Registrar movimiento de SALIDA del lote anterior
-    let { data: motivoSalida } = await supabase
-      .from('motivos_movimiento')
-      .select('id')
-      .eq('nombre', 'Ajuste de inventario')
-      .eq('tipo_movimiento', 'salida')
-      .maybeSingle()
-
-    if (!motivoSalida) {
-      const { data: nuevoMotivo } = await supabase
-        .from('motivos_movimiento')
-        .insert({
-          nombre: 'Ajuste de inventario',
-          tipo_movimiento: 'salida',
-          visible: true,
-        })
-        .select('id')
-        .single()
-      motivoSalida = nuevoMotivo
-    }
-
-    const motivos = []
-    if (cambioPrecio) motivos.push(`precio: S/.${loteActual.precio_real_unidad} → S/.${data.precio_real_unidad}`)
-    if (cambioFechaVencimiento) motivos.push(`fecha venc: ${fechaActualNormalizada || 'sin fecha'} → ${fechaNuevaNormalizada || 'sin fecha'}`)
-    if (cambioEmpaquetadoUnitario) motivos.push(`empaquetado: ${cantidadPorEmpaquetadoActual.toFixed(2)} → ${cantidadPorEmpaquetadoNueva.toFixed(2)} unid`)
-
-    await supabase.from('movimientos').insert({
-      producto_id: data.producto_id,
-      contenedor_id: data.contenedor_id,
-      cantidad: data.cantidad_anterior,
-      motivo_movimiento_id: motivoSalida?.id,
-      observacion: `Lote cerrado - Se creó nuevo lote con cambios: ${motivos.join(', ')}`,
-      precio_real: loteActual.precio_real_unidad,
-      stock_anterior: data.cantidad_anterior,
-      stock_nuevo: 0,
-      fecha_movimiento: new Date().toISOString(),
-    })
-
-    // 3. Crear NUEVO LOTE
-    const { data: nuevoLote, error: insertError } = await supabase
-      .from('detalle_contenedor')
-      .insert({
-        contenedor_id: data.contenedor_id,
-        producto_id: data.producto_id,
-        cantidad: data.cantidad_total,
-        empaquetado: cantidadPorEmpaquetadoNueva.toString(),
-        precio_real_unidad: data.precio_real_unidad,
-        fecha_vencimiento: data.fecha_vencimiento,
-        estado_producto_id: data.estado_producto_id,
-        visible: true,
-      })
-      .select()
-      .single()
-
-    if (insertError) throw insertError
-
-    // 4. Registrar movimiento de ENTRADA del nuevo lote
-    let { data: motivoEntrada } = await supabase
-      .from('motivos_movimiento')
-      .select('id')
-      .eq('nombre', 'Compra')
-      .eq('tipo_movimiento', 'entrada')
-      .maybeSingle()
-
-    if (!motivoEntrada) {
-      const { data: nuevoMotivo } = await supabase
-        .from('motivos_movimiento')
-        .insert({
-          nombre: 'Compra',
-          tipo_movimiento: 'entrada',
-          visible: true,
-        })
-        .select('id')
-        .single()
-      motivoEntrada = nuevoMotivo
-    }
-
-    await supabase.from('movimientos').insert({
-      producto_id: data.producto_id,
-      contenedor_id: data.contenedor_id,
-      cantidad: data.cantidad_total,
-      motivo_movimiento_id: motivoEntrada?.id,
-      observacion: `Nuevo lote creado - ${data.numero_empaquetados} empaquetados (${cantidadPorEmpaquetadoNueva.toFixed(2)} unid/empaquetado)`,
-      precio_real: data.precio_real_unidad,
-      stock_anterior: 0,
-      stock_nuevo: data.cantidad_total,
-      fecha_movimiento: new Date().toISOString(),
-    })
-
-    // Log (sin bloquear la ejecución si falla)
-    const { data: producto } = await supabase.from('productos').select('nombre').eq('id', data.producto_id).single()
-    const { data: contenedor } = await supabase.from('contenedores').select('nombre').eq('id', data.contenedor_id).single()
-
-    logCreate(
-      'detalle_contenedor',
-      nuevoLote.id,
-      `Nuevo lote creado (cambios detectados): ${producto?.nombre || data.producto_id} en ${contenedor?.nombre || data.contenedor_id} | ${data.cantidad_total} unidades en ${data.numero_empaquetados} empaquetados`
-    ).catch(console.error)
-
-    return nuevoLote
-  }
-
-  // Si NO cambió precio, fecha ni empaquetado → ACTUALIZAR el lote existente
+  // ACTUALIZAR el lote existente directamente
   const { data: updatedDetail, error } = await supabase
     .from('detalle_contenedor')
     .update({
@@ -727,7 +590,7 @@ async function updateProductInContainer(data: {
       motivo = nuevoMotivo
     }
 
-    const observacion = `Ajuste de lote existente - ${
+    const observacion = `Ajuste de lote - ${
       diferencia_cantidad > 0 ? 'Aumento' : 'Disminución'
     } de ${Math.abs(diferencia_cantidad).toFixed(2)} unidades. Empaquetados: ${data.numero_empaquetados_anterior} → ${data.numero_empaquetados}`
 

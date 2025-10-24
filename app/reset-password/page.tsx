@@ -32,7 +32,7 @@ export default function ResetPasswordPage() {
 
     // Validaciones
     if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres')
+      setError('La contraseña debe tener al menos 6 caracteres (requisito de Supabase Auth)')
       setLoading(false)
       return
     }

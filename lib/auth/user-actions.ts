@@ -30,6 +30,12 @@ export async function resetUserPassword(userId: string, newPassword: string) {
 
     if (error) {
       console.error('Error al resetear contraseña:', error)
+
+      // Mensaje más amigable para errores comunes
+      if (error.message?.includes('at least 6 characters')) {
+        return { error: 'La contraseña debe tener al menos 6 caracteres (requisito de Supabase Auth)' }
+      }
+
       return { error: `Error al resetear contraseña: ${error.message}` }
     }
 
@@ -62,6 +68,12 @@ export async function createUserInAuth(userData: {
 
     if (authError) {
       console.error('Error creando usuario en Auth:', authError)
+
+      // Mensaje más amigable para errores comunes
+      if (authError.message?.includes('at least 6 characters')) {
+        return { error: 'La contraseña debe tener al menos 6 caracteres (requisito de Supabase Auth)' }
+      }
+
       return { error: `Error al crear usuario en Auth: ${authError.message}` }
     }
 

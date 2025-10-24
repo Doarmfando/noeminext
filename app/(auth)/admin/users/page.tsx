@@ -102,7 +102,7 @@ export default function UsersPage() {
     if (!password) return
 
     if (password.length < 6) {
-      alert('La contraseña debe tener al menos 6 caracteres')
+      alert('La contraseña debe tener al menos 6 caracteres (requisito de Supabase Auth)')
       return
     }
 
