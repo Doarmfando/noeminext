@@ -19,7 +19,8 @@ import {
   ChevronDown,
   ChevronRight,
   Menu,
-  X
+  X,
+  Beer
 } from 'lucide-react'
 import { logout } from '@/lib/auth/actions'
 import { Usuario } from '@/lib/auth/get-user'
@@ -37,6 +38,7 @@ const menuItems = [
 ]
 
 const adminMenuItems = [
+  { href: '/admin/bebidas', label: 'Bebidas', icon: Beer },
   { href: '/admin/categories', label: 'Categorías', icon: Tag },
   { href: '/admin/units', label: 'Unidades', icon: Ruler },
   { href: '/admin/roles', label: 'Roles', icon: Shield },

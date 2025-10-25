@@ -293,7 +293,16 @@ async function createMovement(data: CreateMovementData) {
         ? data.cantidad / data.numero_empaquetados
         : data.cantidad
 
-      await supabase
+      console.log('📦 Creando nuevo lote con:', {
+        numero_empaquetados: data.numero_empaquetados,
+        cantidad: data.cantidad,
+        cantidadPorEmpaquetado,
+        precio_real: data.precio_real,
+        fecha_vencimiento: data.fecha_vencimiento,
+        estado_producto_id: data.estado_producto_id,
+      })
+
+      const { data: nuevoLote, error: loteError } = await supabase
         .from('detalle_contenedor')
         .insert({
           producto_id: data.producto_id,
@@ -305,6 +314,15 @@ async function createMovement(data: CreateMovementData) {
           estado_producto_id: data.estado_producto_id || null,
           visible: true,
         })
+        .select()
+        .single()
+
+      if (loteError) {
+        console.error('Error al crear lote:', loteError)
+        throw new Error(`Error al crear el lote: ${loteError.message}`)
+      }
+
+      console.log('✅ Lote creado exitosamente:', nuevoLote)
     }
   }
 

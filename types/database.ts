@@ -446,6 +446,7 @@ export type Database = {
           precio_estimado: number | null
           stock_min: number | null
           unidad_medida_id: string | null
+          unidades_por_caja: number | null
           updated_at: string | null
           updated_by: string | null
           visible: boolean | null
@@ -463,6 +464,7 @@ export type Database = {
           precio_estimado?: number | null
           stock_min?: number | null
           unidad_medida_id?: string | null
+          unidades_por_caja?: number | null
           updated_at?: string | null
           updated_by?: string | null
           visible?: boolean | null
@@ -480,6 +482,7 @@ export type Database = {
           precio_estimado?: number | null
           stock_min?: number | null
           unidad_medida_id?: string | null
+          unidades_por_caja?: number | null
           updated_at?: string | null
           updated_by?: string | null
           visible?: boolean | null

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Package, Calendar, Hash } from 'lucide-react'
+import { X, Package, Calendar, Hash, Save } from 'lucide-react'
 import {
   useCreateMovement,
   useMovementReasons,
@@ -10,6 +10,8 @@ import {
   type MovementType,
 } from '@/lib/hooks/use-movements'
 import { useInventory, useContainers, useProductContainers } from '@/lib/hooks/use-inventory'
+import { useUpdateUnidadesPorCaja } from '@/lib/hooks/use-bebidas'
+import { useToast } from '@/lib/contexts/toast-context'
 
 interface MovementFormModalProps {
   onClose: () => void
@@ -20,6 +22,8 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
   const { data: inventory = [] } = useInventory()
   const { data: containers = [] } = useContainers()
   const createMutation = useCreateMovement()
+  const updateUnidadesMutation = useUpdateUnidadesPorCaja()
+  const { showSuccess, showError } = useToast()
 
   const products = Array.from(
     new Map(inventory.map((item: any) => [item.producto_id, item.productos])).values()
@@ -43,10 +47,22 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
   const [fechaVencimiento, setFechaVencimiento] = useState<string>('')
   const [precioOriginalLote, setPrecioOriginalLote] = useState<number | null>(null)
   const [fechaOriginalLote, setFechaOriginalLote] = useState<string>('')
+  const [modoIngresoBebida, setModoIngresoBebida] = useState<'cajas' | 'unidades'>('cajas')
+  const [configurandoUnidadesPorCaja, setConfigurandoUnidadesPorCaja] = useState<number | ''>('')
 
   // Obtener contenedores y precio del producto seleccionado
   const { data: productContainers } = useProductContainers(formData.producto_id || '')
   const selectedProduct = products.find((p: any) => p.id === formData.producto_id)
+
+  // Detectar si es bebida con unidades_por_caja configuradas
+  const esBebida = selectedProduct?.unidades_por_caja && selectedProduct.unidades_por_caja > 0
+  const labelEmpaquetado = esBebida ? 'cajas' : 'empaquetados'
+  const labelEmpaquetadoSingular = esBebida ? 'caja' : 'empaquetado'
+
+  // Detectar si es producto de categoría Bebidas pero sin configurar unidades_por_caja
+  const esCategoriaBebidaSinConfigurar =
+    selectedProduct?.categorias?.nombre?.toLowerCase().includes('bebida') &&
+    (!selectedProduct?.unidades_por_caja || selectedProduct.unidades_por_caja <= 0)
 
   // Obtener motivos según el tipo de movimiento
   const { data: motivos = [] } = useMovementReasons(formData.tipo_movimiento)
@@ -111,6 +127,27 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
     Math.abs((formData.precio_real || 0) - precioOriginalLote) > 0.01
   const fechaModificada = loteActual && fechaOriginalLote && fechaVencimiento !== fechaOriginalLote
   const datosDelLoteModificados = precioModificado || fechaModificada
+
+  const handleGuardarUnidadesPorCaja = async () => {
+    if (!selectedProduct || !configurandoUnidadesPorCaja || configurandoUnidadesPorCaja < 1) {
+      showError('Ingresa un número válido de unidades por caja (mínimo 1)')
+      return
+    }
+
+    try {
+      await updateUnidadesMutation.mutateAsync({
+        id: selectedProduct.id,
+        unidades_por_caja: Number(configurandoUnidadesPorCaja),
+      })
+
+      showSuccess(`✅ Configurado: ${selectedProduct.nombre} - ${configurandoUnidadesPorCaja} unidades por caja`)
+      setConfigurandoUnidadesPorCaja('')
+      // El query se invalida automáticamente, el componente se re-renderiza con la nueva data
+    } catch (error: any) {
+      console.error('Error al configurar unidades por caja:', error)
+      showError(error.message || 'Error al guardar la configuración')
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -311,6 +348,53 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
             </div>
           </div>
 
+          {/* Advertencia: Bebida sin configurar + Configuración inline */}
+          {esCategoriaBebidaSinConfigurar && (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">🍺</span>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-blue-900 mb-1">
+                    Configura las Unidades por Caja
+                  </p>
+                  <p className="text-sm text-blue-800 mb-3">
+                    "{selectedProduct?.nombre}" es una bebida. ¿Cuántas unidades contiene cada caja?
+                  </p>
+
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                      <label className="block text-xs font-medium text-blue-700 mb-1">
+                        Unidades por Caja *
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={configurandoUnidadesPorCaja}
+                        onChange={e => setConfigurandoUnidadesPorCaja(e.target.value === '' ? '' : parseInt(e.target.value))}
+                        placeholder="Ej: 24"
+                        className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleGuardarUnidadesPorCaja}
+                      disabled={updateUnidadesMutation.isPending}
+                      className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                    >
+                      <Save className="w-4 h-4" />
+                      {updateUnidadesMutation.isPending ? 'Guardando...' : 'Guardar'}
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-blue-600 mt-2">
+                    💡 Ejemplo: Si cada caja de {selectedProduct?.nombre} contiene 24 botellas, ingresa "24"
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Seleccionar Lote - Mostrar cuando se selecciona producto y contenedor */}
           {formData.producto_id && formData.contenedor_id && productLots.length > 0 && (
             <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-4">
@@ -388,9 +472,9 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
 
                             {cantidadPorEmpaquetado > 0 && (
                               <div className={`rounded px-2 py-1.5 ${isSelected ? 'bg-pink-200' : 'bg-pink-50'}`}>
-                                <p className="text-xs text-pink-700 font-medium">Empaquetados</p>
+                                <p className="text-xs text-pink-700 font-medium">{esBebida ? 'Cajas' : 'Empaquetados'}</p>
                                 <p className="text-base font-bold text-pink-900">
-                                  {numEmpaquetados} paq
+                                  {numEmpaquetados} {esBebida ? 'caj' : 'paq'}
                                 </p>
                                 <p className="text-xs text-pink-600">
                                   ({cantidadPorEmpaquetado} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'} c/u)
@@ -450,64 +534,182 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
             const maxEmpaquetados = cantidadPorEmpaquetado > 0 ? Math.floor((lote?.cantidad || 0) / cantidadPorEmpaquetado) : 0
 
             return (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {cantidadPorEmpaquetado > 0 && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Empaquetados a Sacar
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max={maxEmpaquetados}
-                      step="1"
-                      value={empaquetadosASacar || ''}
-                      onChange={e => {
-                        const empaq = parseInt(e.target.value) || 0
-                        setEmpaquetadosASacar(empaq)
-                        // Actualizar cantidad automáticamente
-                        setFormData({ ...formData, cantidad: empaq * cantidadPorEmpaquetado })
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="0"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Máximo: {maxEmpaquetados} empaquetados
-                    </p>
+              <div className="space-y-4">
+                {esBebida ? (
+                  // Para BEBIDAS: Mostrar toggle entre cajas y unidades
+                  <>
+                    {/* Toggle Cajas/Unidades */}
+                    <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
+                      <button
+                        type="button"
+                        onClick={() => setModoIngresoBebida('cajas')}
+                        className={`flex-1 px-4 py-2 rounded-md font-medium transition-all ${
+                          modoIngresoBebida === 'cajas'
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        📦 Cajas
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModoIngresoBebida('unidades')}
+                        className={`flex-1 px-4 py-2 rounded-md font-medium transition-all ${
+                          modoIngresoBebida === 'unidades'
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        🔢 Unidades
+                      </button>
+                    </div>
+
+                    {modoIngresoBebida === 'cajas' ? (
+                      // Modo CAJAS
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Número de Cajas a Sacar * 📦
+                          </label>
+                          <input
+                            type="number"
+                            required
+                            min="0"
+                            max={maxEmpaquetados}
+                            step="1"
+                            value={empaquetadosASacar || ''}
+                            onChange={e => {
+                              const cajas = parseInt(e.target.value) || 0
+                              setEmpaquetadosASacar(cajas)
+                              setFormData({ ...formData, cantidad: cajas * cantidadPorEmpaquetado })
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="0"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Máximo: {maxEmpaquetados} cajas ({cantidadPorEmpaquetado} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'} c/u)
+                          </p>
+                        </div>
+                        {empaquetadosASacar > 0 && (
+                          <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-300 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs font-medium text-blue-600 uppercase">Total a sacar</p>
+                              <span className="text-xl">🍺</span>
+                            </div>
+                            <p className="text-2xl font-bold text-blue-900">
+                              {(formData.cantidad || 0).toFixed(0)} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                            </p>
+                            <p className="text-sm text-blue-700 mt-1">
+                              {empaquetadosASacar} cajas × {cantidadPorEmpaquetado} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      // Modo UNIDADES
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Cantidad de Unidades a Sacar * 🔢
+                          </label>
+                          <input
+                            type="number"
+                            required
+                            min="0"
+                            max={lote?.cantidad || 0}
+                            step="1"
+                            value={formData.cantidad || ''}
+                            onChange={e => {
+                              const unidades = parseInt(e.target.value) || 0
+                              setFormData({ ...formData, cantidad: unidades })
+                              // Calcular cajas correspondientes
+                              if (cantidadPorEmpaquetado > 0) {
+                                setEmpaquetadosASacar(Math.floor(unidades / cantidadPorEmpaquetado))
+                              }
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="0"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Máximo: {lote?.cantidad || 0} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                          </p>
+                        </div>
+                        {(formData.cantidad || 0) > 0 && (
+                          <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-300 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs font-medium text-blue-600 uppercase">Equivalente en cajas</p>
+                              <span className="text-xl">📦</span>
+                            </div>
+                            <p className="text-2xl font-bold text-blue-900">
+                              {Math.floor((formData.cantidad || 0) / cantidadPorEmpaquetado)} cajas
+                            </p>
+                            <p className="text-sm text-blue-700 mt-1">
+                              + {(formData.cantidad || 0) % cantidadPorEmpaquetado} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'} sueltas
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {cantidadPorEmpaquetado > 0 && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Empaquetados a Sacar
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max={maxEmpaquetados}
+                          step="1"
+                          value={empaquetadosASacar || ''}
+                          onChange={e => {
+                            const empaq = parseInt(e.target.value) || 0
+                            setEmpaquetadosASacar(empaq)
+                            setFormData({ ...formData, cantidad: empaq * cantidadPorEmpaquetado })
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="0"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Máximo: {maxEmpaquetados} empaquetados
+                        </p>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Cantidad Total *
+                        {selectedProduct && (
+                          <span className="text-xs text-gray-500 ml-1">
+                            ({(selectedProduct as any).unidades_medida?.nombre || 'unidades'})
+                          </span>
+                        )}
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min="0.01"
+                        max={lote?.cantidad || 0}
+                        step="0.01"
+                        value={formData.cantidad || ''}
+                        onChange={e => {
+                          const cantidad = parseFloat(e.target.value) || 0
+                          setFormData({ ...formData, cantidad })
+                          if (cantidadPorEmpaquetado > 0) {
+                            setEmpaquetadosASacar(Math.floor(cantidad / cantidadPorEmpaquetado))
+                          }
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="0.00"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Disponible: {lote?.cantidad || 0} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                      </p>
+                    </div>
                   </div>
                 )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cantidad Total *
-                    {selectedProduct && (
-                      <span className="text-xs text-gray-500 ml-1">
-                        ({(selectedProduct as any).unidades_medida?.nombre || 'unidades'})
-                      </span>
-                    )}
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="0.01"
-                    max={lote?.cantidad || 0}
-                    step="0.01"
-                    value={formData.cantidad || ''}
-                    onChange={e => {
-                      const cantidad = parseFloat(e.target.value) || 0
-                      setFormData({ ...formData, cantidad })
-                      // Calcular empaquetados correspondientes
-                      if (cantidadPorEmpaquetado > 0) {
-                        setEmpaquetadosASacar(Math.floor(cantidad / cantidadPorEmpaquetado))
-                      }
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="0.00"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Disponible: {lote?.cantidad || 0} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
-                  </p>
-                </div>
               </div>
             )
           })()}
@@ -550,77 +752,200 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {cantidadPorEmpaquetado > 0 && (
+                {esBebida ? (
+                  // Para BEBIDAS: Toggle entre cajas y unidades
+                  <div className="space-y-4">
+                    {/* Toggle Cajas/Unidades */}
+                    <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
+                      <button
+                        type="button"
+                        onClick={() => setModoIngresoBebida('cajas')}
+                        className={`flex-1 px-4 py-2 rounded-md font-medium transition-all ${
+                          modoIngresoBebida === 'cajas'
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        📦 Cajas
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModoIngresoBebida('unidades')}
+                        className={`flex-1 px-4 py-2 rounded-md font-medium transition-all ${
+                          modoIngresoBebida === 'unidades'
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        🔢 Unidades
+                      </button>
+                    </div>
+
+                    {modoIngresoBebida === 'cajas' ? (
+                      // Modo CAJAS
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Número de Cajas a Ingresar * 📦
+                          </label>
+                          <input
+                            type="number"
+                            required
+                            min="1"
+                            step="1"
+                            value={empaquetadosAIngresar || ''}
+                            onChange={e => {
+                              const cajas = parseInt(e.target.value) || 0
+                              setEmpaquetadosAIngresar(cajas)
+                              setFormData({ ...formData, cantidad: cajas * cantidadPorEmpaquetado })
+                              setNumeroEmpaquetados(cajas)
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="0"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Cada caja tiene: {cantidadPorEmpaquetado} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                          </p>
+                        </div>
+                        {empaquetadosAIngresar > 0 && (
+                          <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs font-medium text-green-600 uppercase">Total a ingresar</p>
+                              <span className="text-xl">🍺</span>
+                            </div>
+                            <p className="text-2xl font-bold text-green-900">
+                              {(formData.cantidad || 0).toFixed(0)} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                            </p>
+                            <p className="text-sm text-green-700 mt-1">
+                              {empaquetadosAIngresar} cajas × {cantidadPorEmpaquetado} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                            </p>
+                            <p className="text-sm text-green-700 mt-2 pt-2 border-t border-green-300 font-semibold">
+                              Stock: {loteActual.cantidad} → {(loteActual.cantidad + (formData.cantidad ?? 0)).toFixed(0)}
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      // Modo UNIDADES
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Cantidad de Unidades a Ingresar * 🔢
+                          </label>
+                          <input
+                            type="number"
+                            required
+                            min="1"
+                            step="1"
+                            value={formData.cantidad || ''}
+                            onChange={e => {
+                              const unidades = parseInt(e.target.value) || 0
+                              setFormData({ ...formData, cantidad: unidades })
+                              // Calcular cajas correspondientes
+                              if (cantidadPorEmpaquetado > 0) {
+                                const cajas = Math.floor(unidades / cantidadPorEmpaquetado)
+                                setEmpaquetadosAIngresar(cajas)
+                                setNumeroEmpaquetados(cajas)
+                              }
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="0"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Cada caja tiene: {cantidadPorEmpaquetado} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                          </p>
+                        </div>
+                        {(formData.cantidad || 0) > 0 && (
+                          <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs font-medium text-green-600 uppercase">Equivalente en cajas</p>
+                              <span className="text-xl">📦</span>
+                            </div>
+                            <p className="text-2xl font-bold text-green-900">
+                              {Math.floor((formData.cantidad || 0) / cantidadPorEmpaquetado)} cajas
+                            </p>
+                            <p className="text-sm text-green-700 mt-1">
+                              + {(formData.cantidad || 0) % cantidadPorEmpaquetado} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'} sueltas
+                            </p>
+                            <p className="text-sm text-green-700 mt-2 pt-2 border-t border-green-300 font-semibold">
+                              Stock: {loteActual.cantidad} → {(loteActual.cantidad + (formData.cantidad ?? 0)).toFixed(0)}
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  // Para productos NORMALES: Flujo tradicional
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {cantidadPorEmpaquetado > 0 && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Empaquetados a Ingresar *
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={empaquetadosAIngresar || ''}
+                          onChange={e => {
+                            const empaq = parseInt(e.target.value) || 0
+                            setEmpaquetadosAIngresar(empaq)
+                            setFormData({ ...formData, cantidad: empaq * cantidadPorEmpaquetado })
+                            setNumeroEmpaquetados(empaq)
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="0"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Cada empaquetado tiene: {cantidadPorEmpaquetado} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                        </p>
+                      </div>
+                    )}
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Empaquetados a Ingresar *
+                        Cantidad Total a Ingresar *
+                        {selectedProduct && (
+                          <span className="text-xs text-gray-500 ml-1">
+                            ({(selectedProduct as any).unidades_medida?.nombre || 'unidades'})
+                          </span>
+                        )}
                       </label>
                       <input
                         type="number"
-                        min="1"
-                        step="1"
-                        value={empaquetadosAIngresar || ''}
+                        required
+                        min="0.01"
+                        step="0.01"
+                        value={formData.cantidad || ''}
                         onChange={e => {
-                          const empaq = parseInt(e.target.value) || 0
-                          setEmpaquetadosAIngresar(empaq)
-                          // Auto-calcular cantidad
-                          setFormData({ ...formData, cantidad: empaq * cantidadPorEmpaquetado })
-                          // Usar el mismo número de empaquetados para la división
-                          setNumeroEmpaquetados(empaq)
+                          const cantidad = parseFloat(e.target.value) || 0
+                          setFormData({ ...formData, cantidad })
+                          if (cantidadPorEmpaquetado > 0) {
+                            const empaq = Math.floor(cantidad / cantidadPorEmpaquetado)
+                            setEmpaquetadosAIngresar(empaq)
+                            setNumeroEmpaquetados(empaq)
+                          }
                         }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="0"
+                        placeholder="0.00"
                       />
                       <p className="text-xs text-gray-500 mt-1">
-                        Cada empaquetado tiene: {cantidadPorEmpaquetado} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                        Cantidad actual del lote: {loteActual.cantidad} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
                       </p>
                     </div>
-                  )}
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Cantidad Total a Ingresar *
-                      {selectedProduct && (
-                        <span className="text-xs text-gray-500 ml-1">
-                          ({(selectedProduct as any).unidades_medida?.nombre || 'unidades'})
-                        </span>
-                      )}
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="0.01"
-                      step="0.01"
-                      value={formData.cantidad || ''}
-                      onChange={e => {
-                        const cantidad = parseFloat(e.target.value) || 0
-                        setFormData({ ...formData, cantidad })
-                        // Calcular empaquetados si hay cantidad por empaquetado
-                        if (cantidadPorEmpaquetado > 0) {
-                          const empaq = Math.floor(cantidad / cantidadPorEmpaquetado)
-                          setEmpaquetadosAIngresar(empaq)
-                          setNumeroEmpaquetados(empaq)
-                        }
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="0.00"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Cantidad actual del lote: {loteActual.cantidad} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
-                    </p>
                   </div>
-                </div>
+                )}
 
-                {/* Resumen cuando hay empaquetados */}
-                {(formData.cantidad ?? 0) > 0 && cantidadPorEmpaquetado > 0 && empaquetadosAIngresar > 0 && (
+                {/* Resumen cuando hay empaquetados (solo para productos normales, bebidas tienen su propio resumen) */}
+                {!esBebida && (formData.cantidad ?? 0) > 0 && cantidadPorEmpaquetado > 0 && empaquetadosAIngresar > 0 && (
                   <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-xs font-medium text-green-600 uppercase">Se agregará</p>
                       <span className="text-lg">📦</span>
                     </div>
                     <p className="text-sm font-medium text-green-900">
-                      {empaquetadosAIngresar} empaquetado{empaquetadosAIngresar > 1 ? 's' : ''} de{' '}
+                      {empaquetadosAIngresar} empaquetados de{' '}
                       <strong>
                         {cantidadPorEmpaquetado} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
                       </strong>{' '}
@@ -662,50 +987,209 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
           {/* Campos para ENTRADA cuando NO hay lote seleccionado */}
           {formData.tipo_movimiento === 'entrada' && !loteSeleccionado && (
             <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cantidad Total *
-                  {selectedProduct && (
-                    <span className="text-xs text-gray-500 ml-1">
-                      ({(selectedProduct as any).unidades_medida?.nombre || 'unidades'})
-                    </span>
+              {esBebida && selectedProduct?.unidades_por_caja ? (
+                // Para BEBIDAS: Toggle entre cajas y unidades
+                <div className="space-y-4">
+                  {/* Toggle Cajas/Unidades */}
+                  <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
+                    <button
+                      type="button"
+                      onClick={() => setModoIngresoBebida('cajas')}
+                      className={`flex-1 px-4 py-2 rounded-md font-medium transition-all ${
+                        modoIngresoBebida === 'cajas'
+                          ? 'bg-blue-600 text-white shadow-md'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      📦 Cajas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setModoIngresoBebida('unidades')}
+                      className={`flex-1 px-4 py-2 rounded-md font-medium transition-all ${
+                        modoIngresoBebida === 'unidades'
+                          ? 'bg-blue-600 text-white shadow-md'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      🔢 Unidades
+                    </button>
+                  </div>
+
+                  {modoIngresoBebida === 'cajas' ? (
+                    // Modo CAJAS
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Número de Cajas * 📦
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          min="1"
+                          step="1"
+                          value={numeroEmpaquetados || ''}
+                          onChange={e => {
+                            const cajas = parseInt(e.target.value) || 1
+                            setNumeroEmpaquetados(cajas)
+                            setFormData({ ...formData, cantidad: cajas * selectedProduct.unidades_por_caja })
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="10"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Cada caja contiene <strong>{selectedProduct.unidades_por_caja}</strong> {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                        </p>
+                      </div>
+                      {numeroEmpaquetados > 0 && (
+                        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-medium text-green-600 uppercase">Total a ingresar</p>
+                            <span className="text-xl">🍺</span>
+                          </div>
+                          <p className="text-2xl font-bold text-green-900">
+                            {(formData.cantidad || 0).toFixed(0)} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                          </p>
+                          <p className="text-sm text-green-700 mt-1">
+                            {numeroEmpaquetados} cajas × {selectedProduct.unidades_por_caja} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    // Modo UNIDADES
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Cantidad de Unidades * 🔢
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          min="1"
+                          step="1"
+                          value={formData.cantidad || ''}
+                          onChange={e => {
+                            const unidades = parseInt(e.target.value) || 0
+                            setFormData({ ...formData, cantidad: unidades })
+                            // Calcular cajas correspondientes
+                            if (selectedProduct.unidades_por_caja > 0) {
+                              setNumeroEmpaquetados(Math.floor(unidades / selectedProduct.unidades_por_caja))
+                            }
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="240"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Cada caja contiene <strong>{selectedProduct.unidades_por_caja}</strong> {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                        </p>
+                      </div>
+                      {(formData.cantidad || 0) > 0 && (
+                        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-medium text-green-600 uppercase">Equivalente en cajas</p>
+                            <span className="text-xl">📦</span>
+                          </div>
+                          <p className="text-2xl font-bold text-green-900">
+                            {Math.floor((formData.cantidad || 0) / selectedProduct.unidades_por_caja)} cajas
+                          </p>
+                          <p className="text-sm text-green-700 mt-1">
+                            + {(formData.cantidad || 0) % selectedProduct.unidades_por_caja} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'} sueltas
+                          </p>
+                        </div>
+                      )}
+                    </>
                   )}
-                </label>
-                <input
-                  type="number"
-                  required
-                  min="0.01"
-                  step="0.01"
-                  value={formData.cantidad || ''}
-                  onChange={e =>
-                    setFormData({ ...formData, cantidad: parseFloat(e.target.value) || 0 })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="0.00"
-                />
-              </div>
-
-              {/* Empaquetados y Fecha de Vencimiento */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Dividir en Empaquetados *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    step="1"
-                    value={numeroEmpaquetados || ''}
-                    onChange={e => setNumeroEmpaquetados(parseInt(e.target.value) || 1)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="1"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    ¿En cuántos empaquetados dividir? (números enteros)
-                  </p>
                 </div>
+              ) : (
+                // Para productos NORMALES: Flujo tradicional
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Cantidad Total *
+                      {selectedProduct && (
+                        <span className="text-xs text-gray-500 ml-1">
+                          ({(selectedProduct as any).unidades_medida?.nombre || 'unidades'})
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="0.01"
+                      step="0.01"
+                      value={formData.cantidad || ''}
+                      onChange={e =>
+                        setFormData({ ...formData, cantidad: parseFloat(e.target.value) || 0 })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0.00"
+                    />
+                  </div>
 
+                  {/* Empaquetados y Fecha de Vencimiento */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Dividir en Empaquetados *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min="1"
+                        step="1"
+                        value={numeroEmpaquetados || ''}
+                        onChange={e => setNumeroEmpaquetados(parseInt(e.target.value) || 1)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="1"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        ¿En cuántos empaquetados dividir? (números enteros)
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Fecha de Vencimiento
+                      </label>
+                      <input
+                        type="date"
+                        value={fechaVencimiento}
+                        onChange={e => setFechaVencimiento(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Opcional - dejar en blanco si no aplica
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Resumen de Empaquetados */}
+                  {(formData.cantidad ?? 0) > 0 && numeroEmpaquetados > 0 && (
+                    <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-medium text-green-600 uppercase">Resultado</p>
+                        <span className="text-lg">📦</span>
+                      </div>
+                      <p className="text-sm font-medium text-green-900">
+                        {numeroEmpaquetados} empaquetados de{' '}
+                        <strong>
+                          {((formData.cantidad ?? 0) / numeroEmpaquetados).toFixed(2)}{' '}
+                          {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                        </strong>{' '}
+                        cada uno
+                      </p>
+                      <p className="text-xs text-green-700 mt-1">
+                        = {(formData.cantidad ?? 0).toFixed(2)}{' '}
+                        {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'} totales
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Fecha de Vencimiento para BEBIDAS (fuera del grid) */}
+              {esBebida && selectedProduct?.unidades_por_caja && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Fecha de Vencimiento
@@ -718,28 +1202,6 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Opcional - dejar en blanco si no aplica
-                  </p>
-                </div>
-              </div>
-
-              {/* Resumen de Empaquetados */}
-              {(formData.cantidad ?? 0) > 0 && numeroEmpaquetados > 0 && (
-                <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-medium text-green-600 uppercase">Resultado</p>
-                    <span className="text-lg">📦</span>
-                  </div>
-                  <p className="text-sm font-medium text-green-900">
-                    {numeroEmpaquetados} empaquetado{numeroEmpaquetados > 1 ? 's' : ''} de{' '}
-                    <strong>
-                      {((formData.cantidad ?? 0) / numeroEmpaquetados).toFixed(2)}{' '}
-                      {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
-                    </strong>{' '}
-                    cada uno
-                  </p>
-                  <p className="text-xs text-green-700 mt-1">
-                    = {(formData.cantidad ?? 0).toFixed(2)}{' '}
-                    {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'} totales
                   </p>
                 </div>
               )}

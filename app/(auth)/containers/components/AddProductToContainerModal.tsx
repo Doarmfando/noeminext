@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Plus, Search, Pin } from 'lucide-react'
+import { X, Plus, Search, Pin, Save } from 'lucide-react'
 import { useInventory, useProductContainers } from '@/lib/hooks/use-inventory'
 import { useAddProductToContainer } from '@/lib/hooks/use-containers'
 import { ProductFormModal } from '@/app/(auth)/inventory/components/ProductFormModal'
 import { useToast } from '@/lib/contexts/toast-context'
+import { useUpdateUnidadesPorCaja } from '@/lib/hooks/use-bebidas'
 
 interface AddProductToContainerModalProps {
   container: any
@@ -227,6 +228,7 @@ function AddProductForm({
   onSuccess: () => void
 }) {
   const addMutation = useAddProductToContainer()
+  const updateUnidadesMutation = useUpdateUnidadesPorCaja()
   const { showSuccess, showError } = useToast()
   const [formData, setFormData] = useState({
     cantidad_total: 0,
@@ -239,8 +241,39 @@ function AddProductForm({
     numero_empaquetados: '',
     precio_real_unidad: '',
   })
+  const [configurandoUnidadesPorCaja, setConfigurandoUnidadesPorCaja] = useState<number | ''>('')
 
   const cantidadPorEmpaquetado = formData.cantidad_total / formData.numero_empaquetados
+
+  // Detectar si es bebida con unidades_por_caja configuradas
+  const esBebida = product.unidades_por_caja && product.unidades_por_caja > 0
+  const unidadesPorCaja = product.unidades_por_caja || null
+
+  // Detectar si es producto de categoría Bebidas pero sin configurar unidades_por_caja
+  const esCategoriaBebidaSinConfigurar =
+    product?.categorias?.nombre?.toLowerCase().includes('bebida') &&
+    (!product?.unidades_por_caja || product.unidades_por_caja <= 0)
+
+  const handleGuardarUnidadesPorCaja = async () => {
+    if (!configurandoUnidadesPorCaja || configurandoUnidadesPorCaja < 1) {
+      showError('Ingresa un número válido de unidades por caja (mínimo 1)')
+      return
+    }
+
+    try {
+      await updateUnidadesMutation.mutateAsync({
+        id: product.id,
+        unidades_por_caja: Number(configurandoUnidadesPorCaja),
+      })
+
+      showSuccess(`✅ Configurado: ${product.nombre} - ${configurandoUnidadesPorCaja} unidades por caja`)
+      setConfigurandoUnidadesPorCaja('')
+      // El query se invalida automáticamente, el componente se re-renderiza con la nueva data
+    } catch (error: any) {
+      console.error('Error al configurar unidades por caja:', error)
+      showError(error.message || 'Error al guardar la configuración')
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -297,79 +330,200 @@ function AddProductForm({
         </p>
       </div>
 
+      {/* Advertencia: Bebida sin configurar + Configuración inline */}
+      {esCategoriaBebidaSinConfigurar && (
+        <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">🍺</span>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-blue-900 mb-1">
+                Configura las Unidades por Caja
+              </p>
+              <p className="text-sm text-blue-800 mb-3">
+                "{product.nombre}" es una bebida. ¿Cuántas unidades contiene cada caja?
+              </p>
+
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-blue-700 mb-1">
+                    Unidades por Caja *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={configurandoUnidadesPorCaja}
+                    onChange={e => setConfigurandoUnidadesPorCaja(e.target.value === '' ? '' : parseInt(e.target.value))}
+                    placeholder="Ej: 24"
+                    className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGuardarUnidadesPorCaja}
+                  disabled={updateUnidadesMutation.isPending}
+                  className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                >
+                  <Save className="w-4 h-4" />
+                  {updateUnidadesMutation.isPending ? 'Guardando...' : 'Guardar'}
+                </button>
+              </div>
+
+              <p className="text-xs text-blue-600 mt-2">
+                💡 Ejemplo: Si cada caja de {product.nombre} contiene 24 botellas, ingresa "24"
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Formulario */}
       <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Cantidad Total *{' '}
-            <span className="text-xs text-gray-500">
-              ({product.unidades_medida?.abreviatura || 'unid'})
-            </span>
-          </label>
-          <input
-            type="number"
-            required
-            min="0.01"
-            step="0.01"
-            value={formData.cantidad_total || ''}
-            onChange={e => {
-              setFormData({ ...formData, cantidad_total: parseFloat(e.target.value) || 0 })
-              setErrors({ ...errors, cantidad_total: '' })
-            }}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errors.cantidad_total ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="50.00"
-          />
-          {errors.cantidad_total ? (
-            <p className="text-xs text-red-600 mt-1">{errors.cantidad_total}</p>
-          ) : (
-            <p className="text-xs text-gray-500 mt-1">
-              Cantidad total en {product.unidades_medida?.nombre || 'unidades'}
-            </p>
-          )}
-        </div>
+        {esBebida ? (
+          // Para bebidas: Ingresar número de cajas primero (más intuitivo)
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Número de Cajas * 📦
+              </label>
+              <input
+                type="number"
+                required
+                min="1"
+                step="1"
+                value={formData.numero_empaquetados || ''}
+                onChange={e => {
+                  const numCajas = parseInt(e.target.value) || 1
+                  setFormData({
+                    ...formData,
+                    numero_empaquetados: numCajas,
+                    cantidad_total: numCajas * (unidadesPorCaja || 1),
+                  })
+                  setErrors({ ...errors, numero_empaquetados: '' })
+                }}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.numero_empaquetados ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="10"
+              />
+              {errors.numero_empaquetados ? (
+                <p className="text-xs text-red-600 mt-1">{errors.numero_empaquetados}</p>
+              ) : (
+                <p className="text-xs text-gray-500 mt-1">
+                  Cada caja contiene <strong>{unidadesPorCaja}</strong> {product.unidades_medida?.abreviatura || 'unid'}
+                </p>
+              )}
+            </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Dividir en Empaquetados *
-          </label>
-          <input
-            type="number"
-            required
-            min="1"
-            step="1"
-            value={formData.numero_empaquetados || ''}
-            onChange={e => {
-              setFormData({ ...formData, numero_empaquetados: parseInt(e.target.value) || 1 })
-              setErrors({ ...errors, numero_empaquetados: '' })
-            }}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errors.numero_empaquetados ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="5"
-          />
-          {errors.numero_empaquetados ? (
-            <p className="text-xs text-red-600 mt-1">{errors.numero_empaquetados}</p>
-          ) : (
-            <p className="text-xs text-gray-500 mt-1">
-              ¿En cuántos empaquetados dividir la cantidad? (solo números enteros)
-            </p>
-          )}
-        </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Cantidad Total (calculada automáticamente)
+              </label>
+              <input
+                type="number"
+                required
+                min="0.01"
+                step="0.01"
+                value={formData.cantidad_total || ''}
+                onChange={e => {
+                  setFormData({ ...formData, cantidad_total: parseFloat(e.target.value) || 0 })
+                  setErrors({ ...errors, cantidad_total: '' })
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                disabled
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {formData.numero_empaquetados} cajas × {unidadesPorCaja} {product.unidades_medida?.abreviatura || 'unid'}
+              </p>
+            </div>
+          </>
+        ) : (
+          // Para productos normales: flujo tradicional
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Cantidad Total *{' '}
+                <span className="text-xs text-gray-500">
+                  ({product.unidades_medida?.abreviatura || 'unid'})
+                </span>
+              </label>
+              <input
+                type="number"
+                required
+                min="0.01"
+                step="0.01"
+                value={formData.cantidad_total || ''}
+                onChange={e => {
+                  setFormData({ ...formData, cantidad_total: parseFloat(e.target.value) || 0 })
+                  setErrors({ ...errors, cantidad_total: '' })
+                }}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.cantidad_total ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="50.00"
+              />
+              {errors.cantidad_total ? (
+                <p className="text-xs text-red-600 mt-1">{errors.cantidad_total}</p>
+              ) : (
+                <p className="text-xs text-gray-500 mt-1">
+                  Cantidad total en {product.unidades_medida?.nombre || 'unidades'}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Dividir en Empaquetados *
+              </label>
+              <input
+                type="number"
+                required
+                min="1"
+                step="1"
+                value={formData.numero_empaquetados || ''}
+                onChange={e => {
+                  setFormData({ ...formData, numero_empaquetados: parseInt(e.target.value) || 1 })
+                  setErrors({ ...errors, numero_empaquetados: '' })
+                }}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.numero_empaquetados ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="5"
+              />
+              {errors.numero_empaquetados ? (
+                <p className="text-xs text-red-600 mt-1">{errors.numero_empaquetados}</p>
+              ) : (
+                <p className="text-xs text-gray-500 mt-1">
+                  ¿En cuántos empaquetados dividir la cantidad? (solo números enteros)
+                </p>
+              )}
+            </div>
+          </>
+        )}
 
         {formData.cantidad_total > 0 && formData.numero_empaquetados > 0 && (
-          <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg">
+          <div className={`p-4 bg-gradient-to-r ${esBebida ? 'from-blue-50 to-cyan-50 border-2 border-blue-300' : 'from-green-50 to-emerald-50 border-2 border-green-200'} rounded-lg`}>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-medium text-green-600 uppercase">Resultado</p>
-              <span className="text-lg">📦</span>
+              <p className={`text-xs font-medium uppercase ${esBebida ? 'text-blue-600' : 'text-green-600'}`}>
+                {esBebida ? '🍺 Bebidas' : 'Resultado'}
+              </p>
+              <span className="text-lg">{esBebida ? '📦' : '📦'}</span>
             </div>
-            <p className="text-sm font-medium text-green-900">
-              {formData.numero_empaquetados} empaquetados de{' '}
-              <strong>{cantidadPorEmpaquetado.toFixed(2)} {product.unidades_medida?.abreviatura || 'unid'}</strong>{' '}
-              cada uno
+            <p className={`text-sm font-medium ${esBebida ? 'text-blue-900' : 'text-green-900'}`}>
+              {esBebida ? (
+                <>
+                  <strong>{formData.numero_empaquetados}</strong> cajas de{' '}
+                  <strong>{unidadesPorCaja} {product.unidades_medida?.abreviatura || 'unid'}</strong> cada una
+                </>
+              ) : (
+                <>
+                  {formData.numero_empaquetados} empaquetados de{' '}
+                  <strong>{cantidadPorEmpaquetado.toFixed(2)} {product.unidades_medida?.abreviatura || 'unid'}</strong>{' '}
+                  cada uno
+                </>
+              )}
             </p>
-            <p className="text-xs text-green-700 mt-1">
+            <p className={`text-xs mt-1 ${esBebida ? 'text-blue-700' : 'text-green-700'}`}>
               = {formData.cantidad_total.toFixed(2)} {product.unidades_medida?.abreviatura || 'unid'} totales
             </p>
           </div>
