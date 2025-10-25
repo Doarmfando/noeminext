@@ -126,35 +126,22 @@ export function useVerificarPermiso(codigoPermiso: string) {
       if (!user) return false
 
       // Obtener usuario de la BD con su rol
-      const { data: usuario, error: usuarioError } = await supabase
+      const { data: usuario } = await supabase
         .from('usuarios')
-        .select('id, rol_id, nombre_usuario, auth_user_id')
+        .select('id, rol_id')
         .eq('auth_user_id', user.id)
         .eq('visible', true)
         .single()
 
-      console.log('🔍 DEBUG - Verificar Permiso:', {
-        codigoPermiso,
-        authUserId: user.id,
-        usuarioEncontrado: usuario,
-        error: usuarioError
-      })
-
-      if (!usuario) {
-        console.warn('❌ Usuario no encontrado en BD con auth_user_id:', user.id)
-        return false
-      }
+      if (!usuario) return false
 
       // Si el usuario NO tiene rol, solo puede ver el dashboard
       if (!usuario.rol_id) {
-        console.warn('⚠️ Usuario sin rol asignado:', usuario.nombre_usuario)
         const permisosBasicos = [
           'dashboard.view'
         ]
         return permisosBasicos.includes(codigoPermiso)
       }
-
-      console.log('✅ Usuario con rol:', usuario.rol_id)
 
       // Verificar si el rol tiene el permiso
       const { data: permisos } = await supabase
@@ -196,28 +183,18 @@ export function usePermisosUsuario() {
       if (!user) return []
 
       // Obtener usuario de la BD con su rol
-      const { data: usuario, error: usuarioError } = await supabase
+      const { data: usuario } = await supabase
         .from('usuarios')
-        .select('id, rol_id, nombre_usuario, auth_user_id')
+        .select('id, rol_id')
         .eq('auth_user_id', user.id)
         .eq('visible', true)
         .single()
 
-      console.log('🔍 DEBUG - Permisos Usuario:', {
-        authUserId: user.id,
-        usuarioEncontrado: usuario,
-        error: usuarioError
-      })
-
       // Si no hay usuario en la BD, no tiene permisos
-      if (!usuario) {
-        console.warn('❌ Usuario no encontrado en BD con auth_user_id:', user.id)
-        return []
-      }
+      if (!usuario) return []
 
       // Si el usuario NO tiene rol asignado, solo puede ver el dashboard
       if (!usuario.rol_id) {
-        console.warn('⚠️ Usuario sin rol asignado, usando permisos básicos:', usuario.nombre_usuario)
         const permisosBasicos = [
           'dashboard.view'
         ]
@@ -230,8 +207,6 @@ export function usePermisosUsuario() {
 
         return (permisos || []) as Permiso[]
       }
-
-      console.log('✅ Obteniendo permisos del rol:', usuario.rol_id)
 
       // Obtener permisos del rol
       const { data: permisos } = await supabase

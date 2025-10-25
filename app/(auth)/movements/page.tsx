@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
-import { Plus, ArrowUpDown, FileText } from 'lucide-react'
+import { Plus, ArrowUpDown, FileText, Eye } from 'lucide-react'
 import {
   useMovements,
   type MovementFilters,
@@ -18,11 +18,15 @@ const MovementFormModal = dynamic(() => import('./components/MovementFormModal')
 const KardexModal = dynamic(() => import('./components/KardexModal').then(mod => ({ default: mod.KardexModal })), {
   ssr: false,
 })
+const MovementDetailModal = dynamic(() => import('./components/MovementDetailModal').then(mod => ({ default: mod.MovementDetailModal })), {
+  ssr: false,
+})
 
 export default function MovementsPage() {
   const [filters, setFilters] = useState<MovementFilters>({})
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
+  const [selectedMovement, setSelectedMovement] = useState<any>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(25)
 
@@ -320,15 +324,24 @@ export default function MovementsPage() {
                       </div>
                     </td>
                     <td className="px-3 md:px-4 py-3 whitespace-nowrap text-center">
-                      <button
-                        onClick={() =>
-                          setSelectedProduct({ id: product.id, nombre: product.nombre })
-                        }
-                        className="text-blue-600 hover:text-blue-800 font-medium text-sm inline-flex items-center gap-1"
-                      >
-                        <FileText className="w-4 h-4" />
-                        <span className="hidden lg:inline">Kardex</span>
-                      </button>
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => setSelectedMovement(movement)}
+                          className="p-1 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded transition-colors"
+                          title="Ver detalle"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            setSelectedProduct({ id: product.id, nombre: product.nombre })
+                          }
+                          className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                          title="Ver kardex"
+                        >
+                          <FileText className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )
@@ -358,6 +371,13 @@ export default function MovementsPage() {
 
       {selectedProduct && (
         <KardexModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+      )}
+
+      {selectedMovement && (
+        <MovementDetailModal
+          movement={selectedMovement}
+          onClose={() => setSelectedMovement(null)}
+        />
       )}
     </div>
   )

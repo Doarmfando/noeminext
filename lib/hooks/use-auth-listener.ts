@@ -17,12 +17,8 @@ export function useAuthListener() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🔄 Auth event:', event, 'User:', session?.user?.email)
-
       // Cuando el usuario hace logout o cambia de sesión
       if (event === 'SIGNED_OUT' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        console.log('🧹 Limpiando cache de permisos...')
-
         // Invalidar todas las queries de permisos
         queryClient.invalidateQueries({ queryKey: ['user-permissions'] })
         queryClient.invalidateQueries({ queryKey: ['user-permission'] })

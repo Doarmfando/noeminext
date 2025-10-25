@@ -56,22 +56,9 @@ export function Sidebar({ user }: SidebarProps) {
   const { data: userPermisos = [], isLoading } = usePermisosUsuario()
   const codigosPermisos = userPermisos.map(p => p.codigo)
 
-  // DEBUG: Ver qué permisos tiene el usuario
-  console.log('🔍 SIDEBAR DEBUG:', {
-    usuario: user.nombre_usuario,
-    totalPermisos: userPermisos.length,
-    permisos: codigosPermisos,
-    isLoading
-  })
-
   // Filtrar items del menú según permisos
   const visibleMenuItems = menuItems.filter(item => codigosPermisos.includes(item.permiso))
   const visibleAdminItems = adminMenuItems.filter(item => codigosPermisos.includes(item.permiso))
-
-  console.log('📊 SIDEBAR FILTRADO:', {
-    visibleMenuItems: visibleMenuItems.map(i => i.label),
-    visibleAdminItems: visibleAdminItems.map(i => i.label),
-  })
 
   // Verificar si tiene algún permiso de admin
   const hasAdminAccess = visibleAdminItems.length > 0
