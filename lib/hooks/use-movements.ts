@@ -279,6 +279,12 @@ async function createMovement(data: CreateMovementData) {
   } else if (data.tipo_movimiento === 'entrada') {
     if (loteEspecifico) {
       // Agregar a lote existente
+      console.log('📦 ENTRADA A LOTE EXISTENTE:', {
+        lote_id: loteEspecifico.id,
+        cantidad_a_agregar: data.cantidad,
+        numero_empaquetados_recibido: data.numero_empaquetados,
+        actualizar_precio: data.actualizar_precio_lote,
+      })
       // Solo actualizar precio si el flag lo indica
       await procesarEntradaLote(
         supabase,
@@ -289,9 +295,28 @@ async function createMovement(data: CreateMovementData) {
       )
     } else {
       // Crear nuevo lote con empaquetados
-      const cantidadPorEmpaquetado = data.numero_empaquetados
-        ? data.cantidad / data.numero_empaquetados
-        : data.cantidad
+      // OBTENER PRODUCTO para verificar si es bebida
+      const { data: productoInfo } = await supabase
+        .from('productos')
+        .select('unidades_por_caja')
+        .eq('id', data.producto_id)
+        .single()
+
+      // Para BEBIDAS: usar empaquetado FIJO de unidades_por_caja
+      // Para PRODUCTOS NORMALES: calcular empaquetado dividiendo
+      let cantidadPorEmpaquetado: number
+
+      if (productoInfo?.unidades_por_caja && productoInfo.unidades_por_caja > 0) {
+        // Es una BEBIDA - usar empaquetado fijo
+        cantidadPorEmpaquetado = productoInfo.unidades_por_caja
+        console.log('🍺 Creando nuevo lote BEBIDA - empaquetado FIJO:', cantidadPorEmpaquetado)
+      } else {
+        // Es producto NORMAL - calcular empaquetado
+        cantidadPorEmpaquetado = data.numero_empaquetados
+          ? data.cantidad / data.numero_empaquetados
+          : data.cantidad
+        console.log('📦 Creando nuevo lote producto normal - empaquetado calculado:', cantidadPorEmpaquetado)
+      }
 
       console.log('📦 Creando nuevo lote con:', {
         numero_empaquetados: data.numero_empaquetados,
@@ -365,6 +390,15 @@ async function procesarEntradaLote(
 ) {
   const cantidadActual = lote.cantidad || 0
   const nuevaCantidad = cantidadActual + cantidadAAgregar
+  const empaquetadoActual = lote.empaquetado
+
+  console.log('🔍 procesarEntradaLote - ANTES:', {
+    lote_id: lote.id,
+    cantidad_actual: cantidadActual,
+    empaquetado_actual: empaquetadoActual,
+    cantidad_a_agregar: cantidadAAgregar,
+    nueva_cantidad: nuevaCantidad,
+  })
 
   // Preparar datos a actualizar
   const updateData: any = {
@@ -376,10 +410,14 @@ async function procesarEntradaLote(
     updateData.precio_real_unidad = precioReal
   }
 
+  console.log('🔍 procesarEntradaLote - DATOS A GUARDAR:', updateData)
+
   await supabase
     .from('detalle_contenedor')
     .update(updateData)
     .eq('id', lote.id)
+
+  console.log('✅ procesarEntradaLote - GUARDADO (empaquetado NO modificado)')
 }
 
 // Procesar salida con lógica FIFO y control de empaquetados

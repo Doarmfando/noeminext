@@ -17,7 +17,9 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(ls:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(if exist .next echo \".next existe aun\")"
     ],
     "deny": [],
     "ask": []

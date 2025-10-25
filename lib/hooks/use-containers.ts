@@ -365,6 +365,27 @@ async function addProductToContainer(data: {
 }) {
   const supabase = createClient()
 
+  // OBTENER PRODUCTO para verificar si es bebida
+  const { data: productoInfo } = await supabase
+    .from('productos')
+    .select('unidades_por_caja')
+    .eq('id', data.producto_id)
+    .single()
+
+  // Para BEBIDAS: usar empaquetado FIJO de unidades_por_caja
+  // Para PRODUCTOS NORMALES: calcular empaquetado dividiendo cantidad / numero
+  let cantidadPorEmpaquetado: number
+
+  if (productoInfo?.unidades_por_caja && productoInfo.unidades_por_caja > 0) {
+    // Es una BEBIDA - usar empaquetado fijo
+    cantidadPorEmpaquetado = productoInfo.unidades_por_caja
+    console.log('🍺 Agregando BEBIDA - empaquetado FIJO:', cantidadPorEmpaquetado)
+  } else {
+    // Es producto NORMAL - calcular empaquetado
+    cantidadPorEmpaquetado = data.cantidad_total / data.numero_empaquetados
+    console.log('📦 Agregando producto normal - empaquetado calculado:', cantidadPorEmpaquetado)
+  }
+
   // VERIFICAR SI YA EXISTE EL PRODUCTO EN ESTE CONTENEDOR CON LA MISMA FECHA DE VENCIMIENTO Y ESTADO
   // Un producto puede estar varias veces en el mismo contenedor si tiene diferentes fechas de vencimiento o estados (lotes diferentes)
   let query = supabase
@@ -391,9 +412,6 @@ async function addProductToContainer(data: {
   const { data: existingProduct, error: checkError } = await query.maybeSingle()
 
   if (checkError) throw checkError
-
-  // Calcular cantidad por empaquetado
-  const cantidadPorEmpaquetado = data.cantidad_total / data.numero_empaquetados
 
   // Buscar o crear motivo "Compra"
   let { data: motivoCompra, error: motivoError } = await supabase
@@ -544,8 +562,26 @@ async function updateProductInContainer(data: {
 }) {
   const supabase = createClient()
 
-  // CALCULAR cantidad por empaquetado
-  const cantidadPorEmpaquetadoNueva = data.cantidad_total / data.numero_empaquetados
+  // OBTENER PRODUCTO para verificar si es bebida
+  const { data: productoInfo } = await supabase
+    .from('productos')
+    .select('unidades_por_caja')
+    .eq('id', data.producto_id)
+    .single()
+
+  // Para BEBIDAS: mantener empaquetado FIJO en unidades_por_caja
+  // Para PRODUCTOS NORMALES: recalcular empaquetado
+  let cantidadPorEmpaquetadoNueva: number
+
+  if (productoInfo?.unidades_por_caja && productoInfo.unidades_por_caja > 0) {
+    // Es una BEBIDA - mantener empaquetado fijo
+    cantidadPorEmpaquetadoNueva = productoInfo.unidades_por_caja
+    console.log('🍺 Actualizando BEBIDA - empaquetado FIJO:', cantidadPorEmpaquetadoNueva)
+  } else {
+    // Es producto NORMAL - recalcular empaquetado
+    cantidadPorEmpaquetadoNueva = data.cantidad_total / data.numero_empaquetados
+    console.log('📦 Actualizando producto normal - empaquetado calculado:', cantidadPorEmpaquetadoNueva)
+  }
 
   // ACTUALIZAR el lote existente directamente
   const { data: updatedDetail, error } = await supabase

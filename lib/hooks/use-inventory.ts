@@ -201,6 +201,8 @@ async function getInventory(filters: InventoryFilters = {}) {
 async function createProduct(productData: CreateProductData) {
   const supabase = createClient()
 
+  console.log('📝 Creando producto:', productData)
+
   // Solo crear el producto, SIN stock inicial
   const { data: producto, error: productoError } = await supabase
     .from('productos')
@@ -217,10 +219,19 @@ async function createProduct(productData: CreateProductData) {
     .select()
     .single()
 
-  if (productoError) throw productoError
+  if (productoError) {
+    console.error('❌ Error al crear producto:', productoError)
+    throw new Error(productoError.message || 'Error al crear el producto en la base de datos')
+  }
 
-  // Registrar en log
-  await logCreate('productos', producto.id, `Producto creado: ${producto.nombre}`)
+  console.log('✅ Producto creado:', producto)
+
+  // Registrar en log (sin bloquear si falla)
+  try {
+    await logCreate('productos', producto.id, `Producto creado: ${producto.nombre}`)
+  } catch (logError) {
+    console.warn('⚠️ Error al registrar en log (no crítico):', logError)
+  }
 
   // Crear relaciones en producto_contenedor
   const relaciones = []
@@ -246,11 +257,18 @@ async function createProduct(productData: CreateProductData) {
   }
 
   if (relaciones.length > 0) {
+    console.log('📦 Creando relaciones producto-contenedor:', relaciones)
     const { error: relacionesError } = await supabase
       .from('producto_contenedor')
       .insert(relaciones)
 
-    if (relacionesError) throw relacionesError
+    if (relacionesError) {
+      console.error('❌ Error al crear relaciones:', relacionesError)
+      // El producto ya se creó, advertir pero no fallar completamente
+      console.warn('⚠️ El producto se creó pero hubo un problema al asignar contenedores')
+      throw new Error('El producto se creó pero no se pudieron asignar los contenedores. Puedes asignarlos manualmente después.')
+    }
+    console.log('✅ Relaciones creadas exitosamente')
   }
 
   return producto

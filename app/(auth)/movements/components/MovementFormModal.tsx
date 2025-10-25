@@ -203,6 +203,16 @@ export function MovementFormModal({ onClose, onSuccess }: MovementFormModalProps
         actualizar_precio_lote: precioModificado, // Flag para indicar si se debe actualizar el precio del lote
       }
 
+      console.log('🚀 ENVIANDO MOVIMIENTO:', {
+        tipo: formData.tipo_movimiento,
+        producto: selectedProduct?.nombre,
+        cantidad: formData.cantidad,
+        lote_seleccionado: loteSeleccionado,
+        crear_nuevo_lote: crearNuevoLote,
+        numero_empaquetados: dataToSend.numero_empaquetados,
+        datos_modificados: datosDelLoteModificados,
+      })
+
       await createMutation.mutateAsync(dataToSend as CreateMovementData)
       onSuccess()
     } catch (error: any) {

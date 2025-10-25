@@ -44,9 +44,10 @@ export function ProductFormModal({ onClose, onSuccess }: ProductFormModalProps) 
     try {
       await createMutation.mutateAsync(formData as CreateProductData)
       onSuccess()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating product:', error)
-      alert('Error al crear el producto')
+      const errorMessage = error?.message || error?.error_description || JSON.stringify(error)
+      alert(`Error al crear el producto: ${errorMessage}`)
     }
   }
 
