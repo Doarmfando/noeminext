@@ -577,7 +577,7 @@ export function useCreateMovement() {
       queryClient.refetchQueries({
         predicate: (query) => {
           const key = query.queryKey[0]
-          return key === 'movements' || key === 'kardex' || key === 'inventory' || key === 'dashboard'
+          return key === 'movements' || key === 'kardex' || key === 'inventory' || key === 'dashboard' || key === 'containers-with-products'
         },
         type: 'active'
       })

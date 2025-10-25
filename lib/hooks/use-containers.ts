@@ -1043,7 +1043,7 @@ export function useUpdateProductInContainer() {
       queryClient.refetchQueries({
         predicate: (query) => {
           const key = query.queryKey[0]
-          return key === 'containers-with-products' || key === 'containers'
+          return key === 'containers-with-products' || key === 'containers' || key === 'inventory'
         },
         type: 'active'
       })
