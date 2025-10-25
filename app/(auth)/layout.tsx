@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/layout/sidebar'
 import { DataPrefetch } from '@/components/providers/data-prefetch'
 import { RealtimeProvider } from '@/lib/providers/realtime-provider'
+import { AuthListener } from '@/components/providers/auth-listener'
 
 export default async function AuthLayout({
   children,
@@ -17,6 +18,7 @@ export default async function AuthLayout({
 
   return (
     <RealtimeProvider>
+      <AuthListener />
       <div className="flex h-screen bg-gray-100">
         <DataPrefetch />
         <Sidebar user={user} />

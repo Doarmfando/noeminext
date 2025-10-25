@@ -42,8 +42,32 @@ export function useCreateRole() {
 
       if (error) throw error
 
+      // Asignar permisos básicos por defecto al nuevo rol
+      const permisosBasicos = [
+        'dashboard.view',
+        'inventory.view',
+        'movements.view',
+        'containers.view'
+      ]
+
+      const { data: permisos } = await supabase
+        .from('permisos')
+        .select('id')
+        .in('codigo', permisosBasicos)
+
+      if (permisos && permisos.length > 0) {
+        const relaciones = permisos.map(p => ({
+          rol_id: data.id,
+          permiso_id: p.id
+        }))
+
+        await supabase
+          .from('rol_permisos')
+          .insert(relaciones)
+      }
+
       // Registrar en log
-      await logCreate('roles', data.id, `Rol creado: ${data.nombre}`)
+      await logCreate('roles', data.id, `Rol creado: ${data.nombre} (con permisos básicos)`)
 
       return data
     },

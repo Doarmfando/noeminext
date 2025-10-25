@@ -1,26 +1,45 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, Pencil, Trash2, Eye, EyeOff } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, Pencil, Trash2, Eye, EyeOff, Shield } from 'lucide-react'
 import { useRoles, useCreateRole, useUpdateRole, useDeleteRole } from '@/lib/hooks/use-roles'
+import { usePermisos, useRolPermisos, useAsignarPermisosARol } from '@/lib/hooks/use-permissions'
 import type { Tables } from '@/types/database'
 
 type Role = Tables<'roles'>
 
 export default function RolesPage() {
   const { data: roles = [], isLoading } = useRoles()
+  const { data: permisos = [] } = usePermisos()
   const createMutation = useCreateRole()
   const updateMutation = useUpdateRole()
   const deleteMutation = useDeleteRole()
+  const asignarPermisosMutation = useAsignarPermisosARol()
 
   const [showForm, setShowForm] = useState(false)
+  const [showPermisosModal, setShowPermisosModal] = useState(false)
   const [editingRole, setEditingRole] = useState<Role | null>(null)
+  const [managingPermisosRole, setManagingPermisosRole] = useState<Role | null>(null)
+  const [selectedPermisos, setSelectedPermisos] = useState<string[]>([])
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
   })
+  const permisosLoadedRef = useRef(false)
 
   const visibleRoles = roles.filter((r) => r.visible)
+
+  // Obtener permisos del rol que se está editando
+  const { data: rolPermisosData = [] } = useRolPermisos(managingPermisosRole?.id)
+
+  // Agrupar permisos por categoría
+  const permisosPorCategoria = permisos.reduce((acc, permiso) => {
+    if (!acc[permiso.categoria]) {
+      acc[permiso.categoria] = []
+    }
+    acc[permiso.categoria].push(permiso)
+    return acc
+  }, {} as Record<string, typeof permisos>)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -73,6 +92,66 @@ export default function RolesPage() {
     setEditingRole(null)
     setFormData({ nombre: '', descripcion: '' })
     setShowForm(true)
+  }
+
+  const handleManagePermisos = (role: Role) => {
+    setManagingPermisosRole(role)
+    setSelectedPermisos([])
+    permisosLoadedRef.current = false
+    setShowPermisosModal(true)
+  }
+
+  // Cargar permisos del rol una sola vez cuando los datos estén disponibles
+  useEffect(() => {
+    if (showPermisosModal && managingPermisosRole && rolPermisosData.length > 0 && !permisosLoadedRef.current) {
+      const currentPermisos = rolPermisosData.map(rp => rp.permiso_id)
+      setSelectedPermisos(currentPermisos)
+      permisosLoadedRef.current = true
+    }
+  }, [showPermisosModal, managingPermisosRole, rolPermisosData])
+
+  const handleTogglePermiso = (permisoId: string) => {
+    setSelectedPermisos(prev =>
+      prev.includes(permisoId)
+        ? prev.filter(id => id !== permisoId)
+        : [...prev, permisoId]
+    )
+  }
+
+  const handleSelectAllCategory = (categoria: string) => {
+    const permisosCategoria = permisos
+      .filter(p => p.categoria === categoria)
+      .map(p => p.id)
+
+    const allSelected = permisosCategoria.every(id => selectedPermisos.includes(id))
+
+    if (allSelected) {
+      // Deseleccionar todos de esta categoría
+      setSelectedPermisos(prev => prev.filter(id => !permisosCategoria.includes(id)))
+    } else {
+      // Seleccionar todos de esta categoría
+      setSelectedPermisos(prev => [
+        ...prev.filter(id => !permisosCategoria.includes(id)),
+        ...permisosCategoria,
+      ])
+    }
+  }
+
+  const handleSavePermisos = async () => {
+    if (!managingPermisosRole) return
+
+    try {
+      await asignarPermisosMutation.mutateAsync({
+        rolId: managingPermisosRole.id,
+        permisoIds: selectedPermisos,
+      })
+      alert('Permisos actualizados exitosamente')
+      setShowPermisosModal(false)
+      setManagingPermisosRole(null)
+    } catch (error) {
+      console.error('Error al guardar permisos:', error)
+      alert('Error al guardar los permisos')
+    }
   }
 
   return (
@@ -148,6 +227,13 @@ export default function RolesPage() {
                   </td>
                   <td className="px-3 md:px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1 md:gap-2">
+                      <button
+                        onClick={() => handleManagePermisos(role)}
+                        className="p-1 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded"
+                        title="Administrar Permisos"
+                      >
+                        <Shield className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => handleEdit(role)}
                         className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
@@ -230,6 +316,113 @@ export default function RolesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Permisos */}
+      {showPermisosModal && managingPermisosRole && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col my-8">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-bold">
+                Administrar Permisos - {managingPermisosRole.nombre}
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Selecciona los permisos que tendrá este rol
+              </p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-6">
+                {Object.entries(permisosPorCategoria).map(([categoria, permisosCategoria]) => {
+                  const allSelected = permisosCategoria.every(p => selectedPermisos.includes(p.id))
+                  const someSelected = permisosCategoria.some(p => selectedPermisos.includes(p.id))
+
+                  // Mapeo de nombres de categorías
+                  const categoriaNombres: Record<string, string> = {
+                    dashboard: 'Dashboard',
+                    inventory: 'Inventario',
+                    movements: 'Movimientos',
+                    containers: 'Contenedores',
+                    admin: 'Administración',
+                  }
+
+                  return (
+                    <div key={categoria} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-semibold text-gray-900">
+                          {categoriaNombres[categoria] || categoria}
+                        </h3>
+                        <button
+                          onClick={() => handleSelectAllCategory(categoria)}
+                          className={`text-sm px-3 py-1 rounded ${
+                            allSelected
+                              ? 'bg-purple-600 text-white'
+                              : someSelected
+                              ? 'bg-purple-200 text-purple-800'
+                              : 'bg-gray-200 text-gray-700'
+                          }`}
+                        >
+                          {allSelected ? 'Deseleccionar todos' : 'Seleccionar todos'}
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {permisosCategoria.map(permiso => (
+                          <label
+                            key={permiso.id}
+                            className="flex items-start gap-2 p-2 rounded hover:bg-gray-50 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedPermisos.includes(permiso.id)}
+                              onChange={() => handleTogglePermiso(permiso.id)}
+                              className="mt-1 w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                            />
+                            <div className="flex-1">
+                              <div className="font-medium text-sm text-gray-900">
+                                {permiso.nombre}
+                              </div>
+                              {permiso.descripcion && (
+                                <div className="text-xs text-gray-500">
+                                  {permiso.descripcion}
+                                </div>
+                              )}
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 flex justify-between items-center">
+              <div className="text-sm text-gray-600">
+                {selectedPermisos.length} de {permisos.length} permisos seleccionados
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPermisosModal(false)
+                    setManagingPermisosRole(null)
+                  }}
+                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSavePermisos}
+                  disabled={asignarPermisosMutation.isPending}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                >
+                  {asignarPermisosMutation.isPending ? 'Guardando...' : 'Guardar Permisos'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

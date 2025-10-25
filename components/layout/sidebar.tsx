@@ -25,25 +25,26 @@ import {
 import { logout } from '@/lib/auth/actions'
 import { Usuario } from '@/lib/auth/get-user'
 import { useState } from 'react'
+import { usePermisosUsuario } from '@/lib/hooks/use-permissions'
 
 interface SidebarProps {
   user: Usuario
 }
 
 const menuItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/inventory', label: 'Inventario', icon: Package },
-  { href: '/movements', label: 'Movimientos', icon: ArrowLeftRight },
-  { href: '/containers', label: 'Contenedores', icon: Box },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, permiso: 'dashboard.view' },
+  { href: '/inventory', label: 'Inventario', icon: Package, permiso: 'inventory.view' },
+  { href: '/movements', label: 'Movimientos', icon: ArrowLeftRight, permiso: 'movements.view' },
+  { href: '/containers', label: 'Contenedores', icon: Box, permiso: 'containers.view' },
 ]
 
 const adminMenuItems = [
-  { href: '/admin/bebidas', label: 'Bebidas', icon: Beer },
-  { href: '/admin/categories', label: 'Categorías', icon: Tag },
-  { href: '/admin/units', label: 'Unidades', icon: Ruler },
-  { href: '/admin/roles', label: 'Roles', icon: Shield },
-  { href: '/admin/users', label: 'Usuarios', icon: Users },
-  { href: '/admin/logs', label: 'Logs', icon: FileText },
+  { href: '/admin/bebidas', label: 'Bebidas', icon: Beer, permiso: 'admin.bebidas.view' },
+  { href: '/admin/categories', label: 'Categorías', icon: Tag, permiso: 'admin.categories.view' },
+  { href: '/admin/units', label: 'Unidades', icon: Ruler, permiso: 'admin.units.view' },
+  { href: '/admin/roles', label: 'Roles', icon: Shield, permiso: 'admin.roles.view' },
+  { href: '/admin/users', label: 'Usuarios', icon: Users, permiso: 'admin.users.view' },
+  { href: '/admin/logs', label: 'Logs', icon: FileText, permiso: 'admin.logs.view' },
 ]
 
 export function Sidebar({ user }: SidebarProps) {
@@ -51,8 +52,29 @@ export function Sidebar({ user }: SidebarProps) {
   const [adminOpen, setAdminOpen] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  // Verificar si el usuario es administrador
-  const isAdmin = user.rol?.nombre?.toLowerCase().includes('admin') || user.rol?.nombre?.toLowerCase().includes('administrador')
+  // Obtener permisos del usuario
+  const { data: userPermisos = [], isLoading } = usePermisosUsuario()
+  const codigosPermisos = userPermisos.map(p => p.codigo)
+
+  // DEBUG: Ver qué permisos tiene el usuario
+  console.log('🔍 SIDEBAR DEBUG:', {
+    usuario: user.nombre_usuario,
+    totalPermisos: userPermisos.length,
+    permisos: codigosPermisos,
+    isLoading
+  })
+
+  // Filtrar items del menú según permisos
+  const visibleMenuItems = menuItems.filter(item => codigosPermisos.includes(item.permiso))
+  const visibleAdminItems = adminMenuItems.filter(item => codigosPermisos.includes(item.permiso))
+
+  console.log('📊 SIDEBAR FILTRADO:', {
+    visibleMenuItems: visibleMenuItems.map(i => i.label),
+    visibleAdminItems: visibleAdminItems.map(i => i.label),
+  })
+
+  // Verificar si tiene algún permiso de admin
+  const hasAdminAccess = visibleAdminItems.length > 0
 
   return (
     <>
@@ -96,29 +118,35 @@ export function Sidebar({ user }: SidebarProps) {
 
       {/* Menu */}
       <nav className="flex-1 p-3 lg:p-4 space-y-1 overflow-y-auto scrollbar-dark">
-        {menuItems.map((item) => {
-          const Icon = item.icon
-          const isActive = pathname === item.href
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+          </div>
+        ) : (
+          <>
+            {visibleMenuItems.map((item) => {
+              const Icon = item.icon
+              const isActive = pathname === item.href
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setMobileOpen(false)}
-              className={`flex items-center gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-lg transition-colors ${
-                isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-              }`}
-            >
-              <Icon className="w-5 h-5 flex-shrink-0" />
-              <span className="truncate">{item.label}</span>
-            </Link>
-          )
-        })}
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={`flex items-center gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              )
+            })}
 
-        {/* Admin Section - Solo para administradores */}
-        {isAdmin && (
+            {/* Admin Section - Solo si tiene permisos de admin */}
+            {hasAdminAccess && (
           <div className="pt-4">
             <button
               onClick={() => setAdminOpen(!adminOpen)}
@@ -137,7 +165,7 @@ export function Sidebar({ user }: SidebarProps) {
 
             {adminOpen && (
               <div className="mt-1 space-y-1">
-                {adminMenuItems.map((item) => {
+                {visibleAdminItems.map((item) => {
                   const Icon = item.icon
                   const isActive = pathname === item.href
 
@@ -160,6 +188,8 @@ export function Sidebar({ user }: SidebarProps) {
               </div>
             )}
           </div>
+            )}
+          </>
         )}
       </nav>
 

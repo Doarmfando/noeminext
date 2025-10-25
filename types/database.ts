@@ -399,6 +399,39 @@ export type Database = {
           },
         ]
       }
+      permisos: {
+        Row: {
+          id: string
+          codigo: string
+          nombre: string
+          descripcion: string | null
+          categoria: string
+          tipo: string
+          created_at: string | null
+          visible: boolean | null
+        }
+        Insert: {
+          id?: string
+          codigo: string
+          nombre: string
+          descripcion?: string | null
+          categoria: string
+          tipo: string
+          created_at?: string | null
+          visible?: boolean | null
+        }
+        Update: {
+          id?: string
+          codigo?: string
+          nombre?: string
+          descripcion?: string | null
+          categoria?: string
+          tipo?: string
+          created_at?: string | null
+          visible?: boolean | null
+        }
+        Relationships: []
+      }
       producto_contenedor: {
         Row: {
           contenedor_id: string
@@ -525,6 +558,42 @@ export type Database = {
           },
         ]
       }
+      rol_permisos: {
+        Row: {
+          id: string
+          rol_id: string
+          permiso_id: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          rol_id: string
+          permiso_id: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          rol_id?: string
+          permiso_id?: string
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rol_permisos_rol_id_fkey"
+            columns: ["rol_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rol_permisos_permiso_id_fkey"
+            columns: ["permiso_id"]
+            isOneToOne: false
+            referencedRelation: "permisos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       roles: {
         Row: {
           descripcion: string | null
@@ -590,6 +659,7 @@ export type Database = {
       }
       usuarios: {
         Row: {
+          auth_user_id: string | null
           clave: string | null
           created_at: string | null
           email: string | null
@@ -601,6 +671,7 @@ export type Database = {
           visible: boolean | null
         }
         Insert: {
+          auth_user_id?: string | null
           clave?: string | null
           created_at?: string | null
           email?: string | null
@@ -612,6 +683,7 @@ export type Database = {
           visible?: boolean | null
         }
         Update: {
+          auth_user_id?: string | null
           clave?: string | null
           created_at?: string | null
           email?: string | null
