@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { logCreate } from '@/lib/utils/logger'
+import { invalidateInventoryQueries } from '@/lib/utils/query-invalidation'
 
 // Tipos
 export type MovementType = 'entrada' | 'salida'
@@ -574,13 +575,8 @@ export function useCreateMovement() {
   return useMutation({
     mutationFn: createMovement,
     onSuccess: () => {
-      queryClient.refetchQueries({
-        predicate: (query) => {
-          const key = query.queryKey[0]
-          return key === 'movements' || key === 'kardex' || key === 'inventory' || key === 'dashboard' || key === 'containers-with-products'
-        },
-        type: 'active'
-      })
+      // Invalidar TODAS las queries relacionadas con inventario y stock
+      invalidateInventoryQueries(queryClient)
     },
   })
 }

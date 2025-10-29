@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { logCreate, logUpdate, logDelete } from '@/lib/utils/logger'
+import { invalidateProductQueries } from '@/lib/utils/query-invalidation'
 
 // Tipos basados en la BD real
 export interface InventoryFilters {
@@ -290,10 +291,8 @@ export function useCreateProduct() {
   return useMutation({
     mutationFn: createProduct,
     onSuccess: () => {
-      // Invalidar todas las queries de inventario
-      queryClient.invalidateQueries({ queryKey: ['inventory'] })
-      // También invalidar productos si hay alguna query de productos
-      queryClient.invalidateQueries({ queryKey: ['products'] })
+      // Invalidar todas las queries relacionadas con productos
+      invalidateProductQueries(queryClient)
     },
   })
 }
@@ -533,8 +532,8 @@ export function useUpdateProduct() {
   return useMutation({
     mutationFn: updateProduct,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inventory'] })
-      queryClient.invalidateQueries({ queryKey: ['products'] })
+      // Invalidar todas las queries relacionadas con productos
+      invalidateProductQueries(queryClient)
       queryClient.invalidateQueries({ queryKey: ['product-containers'] })
     },
   })
@@ -571,8 +570,8 @@ export function useDeleteProduct() {
   return useMutation({
     mutationFn: deleteProduct,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inventory'] })
-      queryClient.invalidateQueries({ queryKey: ['products'] })
+      // Invalidar todas las queries relacionadas con productos
+      invalidateProductQueries(queryClient)
     },
   })
 }

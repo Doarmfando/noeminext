@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Tables, TablesInsert, TablesUpdate } from '@/types/database'
 import { logCreate, logUpdate, logDelete } from '@/lib/utils/logger'
+import { invalidateCategoryQueries } from '@/lib/utils/query-invalidation'
 
 type Category = Tables<'categorias'>
 type CategoryInsert = TablesInsert<'categorias'>
@@ -50,7 +51,7 @@ export function useCreateCategory() {
       return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+      invalidateCategoryQueries(queryClient)
     },
   })
 }
@@ -80,7 +81,7 @@ export function useUpdateCategory() {
       return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+      invalidateCategoryQueries(queryClient)
     },
   })
 }

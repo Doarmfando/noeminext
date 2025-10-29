@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { logUpdate } from '@/lib/utils/logger'
+import { invalidateBebidasQueries } from '@/lib/utils/query-invalidation'
 
 const QUERY_KEY = ['bebidas']
 
@@ -78,10 +79,9 @@ export function useUpdateUnidadesPorCaja() {
       return data
     },
     onSuccess: () => {
+      // Invalidar TODAS las queries relacionadas con bebidas
+      invalidateBebidasQueries(queryClient)
       queryClient.invalidateQueries({ queryKey: QUERY_KEY })
-      // También invalidar el query de inventario por si acaso
-      queryClient.invalidateQueries({ queryKey: ['inventory'] })
-      queryClient.invalidateQueries({ queryKey: ['products'] })
     },
   })
 }

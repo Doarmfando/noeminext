@@ -3,6 +3,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { logCreate, logUpdate, logDelete } from '@/lib/utils/logger'
+import {
+  invalidateInventoryQueries,
+  invalidateContainerQueries,
+} from '@/lib/utils/query-invalidation'
 
 // Interfaces
 export interface ContainerFilters {
@@ -949,13 +953,8 @@ export function useCreateContainer() {
   return useMutation({
     mutationFn: createContainer,
     onSuccess: () => {
-      queryClient.refetchQueries({
-        predicate: (query) => {
-          const key = query.queryKey[0]
-          return key === 'containers-with-products' || key === 'containers'
-        },
-        type: 'active'
-      })
+      // Invalidar queries de contenedores y dashboard
+      invalidateContainerQueries(queryClient)
     },
   })
 }
@@ -966,13 +965,8 @@ export function useUpdateContainer() {
   return useMutation({
     mutationFn: updateContainer,
     onSuccess: () => {
-      queryClient.refetchQueries({
-        predicate: (query) => {
-          const key = query.queryKey[0]
-          return key === 'containers-with-products' || key === 'containers'
-        },
-        type: 'active'
-      })
+      // Invalidar queries de contenedores y dashboard
+      invalidateContainerQueries(queryClient)
     },
   })
 }
@@ -983,13 +977,8 @@ export function useDeleteContainer() {
   return useMutation({
     mutationFn: deleteContainer,
     onSuccess: () => {
-      queryClient.refetchQueries({
-        predicate: (query) => {
-          const key = query.queryKey[0]
-          return key === 'containers-with-products' || key === 'containers'
-        },
-        type: 'active'
-      })
+      // Invalidar queries de contenedores y dashboard
+      invalidateContainerQueries(queryClient)
     },
   })
 }
@@ -1000,18 +989,8 @@ export function useAddProductToContainer() {
   return useMutation({
     mutationFn: addProductToContainer,
     onSuccess: () => {
-      // Refetch inmediato para vistas activas
-      queryClient.refetchQueries({
-        predicate: (query) => {
-          const key = query.queryKey[0]
-          return key === 'containers-with-products' || key === 'containers' || key === 'inventory'
-        },
-        type: 'active'
-      })
-      // Invalidate movements para que se refetch cuando se navegue a esa vista
-      queryClient.invalidateQueries({
-        predicate: (query) => query.queryKey[0] === 'movements'
-      })
+      // CRÍTICO: Esto MODIFICA STOCK, invalidar TODO
+      invalidateInventoryQueries(queryClient)
     },
   })
 }
@@ -1022,13 +1001,8 @@ export function useDeleteProductFromContainer() {
   return useMutation({
     mutationFn: deleteProductFromContainer,
     onSuccess: () => {
-      queryClient.refetchQueries({
-        predicate: (query) => {
-          const key = query.queryKey[0]
-          return key === 'containers-with-products' || key === 'containers'
-        },
-        type: 'active'
-      })
+      // CRÍTICO: Esto MODIFICA STOCK, invalidar TODO
+      invalidateInventoryQueries(queryClient)
     },
   })
 }
@@ -1039,18 +1013,8 @@ export function useRemoveProductFromContainer() {
   return useMutation({
     mutationFn: removeProductFromContainer,
     onSuccess: () => {
-      // Refetch inmediato para vistas activas
-      queryClient.refetchQueries({
-        predicate: (query) => {
-          const key = query.queryKey[0]
-          return key === 'containers-with-products' || key === 'containers' || key === 'inventory'
-        },
-        type: 'active'
-      })
-      // Invalidate movements para que se refetch cuando se navegue a esa vista
-      queryClient.invalidateQueries({
-        predicate: (query) => query.queryKey[0] === 'movements'
-      })
+      // CRÍTICO: Esto MODIFICA STOCK, invalidar TODO
+      invalidateInventoryQueries(queryClient)
     },
   })
 }
@@ -1061,18 +1025,8 @@ export function useUpdateProductInContainer() {
   return useMutation({
     mutationFn: updateProductInContainer,
     onSuccess: () => {
-      // Refetch inmediato para vistas activas
-      queryClient.refetchQueries({
-        predicate: (query) => {
-          const key = query.queryKey[0]
-          return key === 'containers-with-products' || key === 'containers' || key === 'inventory'
-        },
-        type: 'active'
-      })
-      // Invalidate movements para que se refetch cuando se navegue a esa vista
-      queryClient.invalidateQueries({
-        predicate: (query) => query.queryKey[0] === 'movements'
-      })
+      // CRÍTICO: Esto MODIFICA STOCK, invalidar TODO
+      invalidateInventoryQueries(queryClient)
     },
   })
 }
@@ -1083,18 +1037,8 @@ export function useTransferProduct() {
   return useMutation({
     mutationFn: transferProduct,
     onSuccess: () => {
-      // Refetch inmediato para vistas activas
-      queryClient.refetchQueries({
-        predicate: (query) => {
-          const key = query.queryKey[0]
-          return key === 'containers-with-products' || key === 'containers' || key === 'inventory'
-        },
-        type: 'active'
-      })
-      // Invalidate movements para que se refetch cuando se navegue a esa vista
-      queryClient.invalidateQueries({
-        predicate: (query) => query.queryKey[0] === 'movements'
-      })
+      // CRÍTICO: Esto MODIFICA STOCK (transfiere entre contenedores), invalidar TODO
+      invalidateInventoryQueries(queryClient)
     },
   })
 }

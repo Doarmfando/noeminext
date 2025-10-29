@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Tables, TablesInsert, TablesUpdate } from '@/types/database'
 import { logCreate, logUpdate, logDelete } from '@/lib/utils/logger'
+import { invalidateUnitQueries } from '@/lib/utils/query-invalidation'
 
 type Unit = Tables<'unidades_medida'>
 type UnitInsert = TablesInsert<'unidades_medida'>
@@ -48,7 +49,7 @@ export function useCreateUnit() {
       return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+      invalidateUnitQueries(queryClient)
     },
   })
 }
@@ -78,7 +79,7 @@ export function useUpdateUnit() {
       return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+      invalidateUnitQueries(queryClient)
     },
   })
 }
