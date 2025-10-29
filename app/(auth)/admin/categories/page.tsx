@@ -9,6 +9,8 @@ import {
   useDeleteCategory,
 } from '@/lib/hooks/use-categories'
 import type { Tables } from '@/types/database'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { useToast } from '@/lib/contexts/toast-context'
 
 type Category = Tables<'categorias'>
 
@@ -17,10 +19,12 @@ export default function CategoriesPage() {
   const createMutation = useCreateCategory()
   const updateMutation = useUpdateCategory()
   const deleteMutation = useDeleteCategory()
+  const { showError, showSuccess } = useToast()
 
   const [showForm, setShowForm] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [formData, setFormData] = useState({ nombre: '', descripcion: '' })
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; nombre: string } | null>(null)
 
   const visibleCategories = categories.filter((c) => c.visible)
 
@@ -59,16 +63,33 @@ export default function CategoriesPage() {
     setShowForm(true)
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('¿Eliminar esta categoría?')) return
-    await deleteMutation.mutateAsync(id)
+  const handleDelete = (category: Category) => {
+    setDeleteConfirm({ id: category.id, nombre: category.nombre })
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return
+
+    try {
+      await deleteMutation.mutateAsync(deleteConfirm.id)
+      showSuccess(`Categoría "${deleteConfirm.nombre}" eliminada correctamente`)
+      setDeleteConfirm(null)
+    } catch (error: any) {
+      showError(error.message || 'Error al eliminar la categoría')
+      setDeleteConfirm(null)
+    }
   }
 
   const handleToggleVisibility = async (category: Category) => {
-    await updateMutation.mutateAsync({
-      id: category.id,
-      visible: !category.visible,
-    })
+    try {
+      await updateMutation.mutateAsync({
+        id: category.id,
+        visible: !category.visible,
+      })
+      showSuccess(`Categoría "${category.nombre}" ${category.visible ? 'ocultada' : 'mostrada'} correctamente`)
+    } catch (error: any) {
+      showError(error.message || 'Error al actualizar la categoría')
+    }
   }
 
   return (
@@ -173,7 +194,7 @@ export default function CategoriesPage() {
                         )}
                       </button>
                       <button
-                        onClick={() => handleDelete(category.id)}
+                        onClick={() => handleDelete(category)}
                         className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
                         title="Eliminar"
                       >
@@ -248,6 +269,18 @@ export default function CategoriesPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={confirmDelete}
+        title="Eliminar Categoría"
+        message={`¿Estás seguro de que deseas eliminar la categoría "${deleteConfirm?.nombre}"? Esta acción solo la ocultará, no se eliminará permanentemente.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+      />
     </div>
   )
 }

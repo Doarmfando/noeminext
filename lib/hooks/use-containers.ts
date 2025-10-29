@@ -210,18 +210,40 @@ async function updateContainer(data: UpdateContainerData) {
 async function deleteContainer(id: string) {
   const supabase = createClient()
 
-  // Obtener el nombre del contenedor para el log
-  const { data: contenedor } = await supabase
+  // 1. Obtener información del contenedor
+  const { data: contenedor, error: contenedorError } = await supabase
     .from('contenedores')
     .select('nombre')
     .eq('id', id)
     .single()
 
-  const { error } = await supabase.from('contenedores').update({ visible: false }).eq('id', id)
+  if (contenedorError) throw contenedorError
+
+  // 2. VALIDAR: Verificar si el contenedor tiene productos activos
+  const { count: productosCount, error: countError } = await supabase
+    .from('detalle_contenedor')
+    .select('id', { count: 'exact', head: true })
+    .eq('contenedor_id', id)
+    .eq('visible', true)
+
+  if (countError) throw countError
+
+  if (productosCount && productosCount > 0) {
+    throw new Error(
+      `No se puede eliminar el contenedor "${contenedor.nombre}" porque tiene ${productosCount} producto${productosCount === 1 ? '' : 's'} activo${productosCount === 1 ? '' : 's'}. ` +
+      `Debes eliminar o mover ${productosCount === 1 ? 'el producto' : 'los productos'} primero.`
+    )
+  }
+
+  // 3. Si no hay productos, proceder con soft delete
+  const { error } = await supabase
+    .from('contenedores')
+    .update({ visible: false })
+    .eq('id', id)
 
   if (error) throw error
 
-  // Registrar en log (sin bloquear)
+  // 4. Registrar en log (sin bloquear)
   logDelete('contenedores', id, `Contenedor eliminado: ${contenedor?.nombre || id}`).catch(console.error)
 }
 

@@ -113,13 +113,32 @@ export function useDeleteRole() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // Obtener el nombre del rol para el log
-      const { data: rol } = await supabase
+      // 1. Obtener información del rol
+      const { data: rol, error: rolError } = await supabase
         .from('roles')
         .select('nombre')
         .eq('id', id)
         .single()
 
+      if (rolError) throw rolError
+
+      // 2. VALIDAR: Verificar si el rol tiene usuarios activos
+      const { count: usuariosCount, error: countError } = await supabase
+        .from('usuarios')
+        .select('id', { count: 'exact', head: true })
+        .eq('rol_id', id)
+        .eq('visible', true)
+
+      if (countError) throw countError
+
+      if (usuariosCount && usuariosCount > 0) {
+        throw new Error(
+          `No se puede eliminar el rol "${rol.nombre}" porque tiene ${usuariosCount} usuario${usuariosCount === 1 ? '' : 's'} activo${usuariosCount === 1 ? '' : 's'}. ` +
+          `Debes reasignar ${usuariosCount === 1 ? 'el usuario' : 'los usuarios'} a otro rol primero.`
+        )
+      }
+
+      // 3. Si no hay usuarios, proceder con soft delete
       const { error } = await supabase
         .from('roles')
         .update({ visible: false })
@@ -127,11 +146,12 @@ export function useDeleteRole() {
 
       if (error) throw error
 
-      // Registrar en log
+      // 4. Registrar en log
       await logDelete('roles', id, `Rol eliminado: ${rol?.nombre || id}`)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: ['users'] })
     },
   })
 }

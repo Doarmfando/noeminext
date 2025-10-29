@@ -61,7 +61,7 @@ export function useRolPermisos(rolId: string | undefined) {
         .eq('rol_id', rolId)
 
       if (error) throw error
-      return data as RolPermiso[]
+      return (data || []) as unknown as RolPermiso[]
     },
     enabled: !!rolId,
   })

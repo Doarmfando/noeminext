@@ -11,27 +11,35 @@ import {
   TrendingUp,
   AlertCircle,
   Package2,
+  Beer,
+  Box,
 } from 'lucide-react'
 import {
   useDashboardStats,
   useLowStockProducts,
   useExpiringProducts,
   useCategoryStats,
+  useBebidasStats,
+  useContainerStats,
   type Product,
   type CategoryData,
+  type BebidasStats,
+  type ContainerStats,
 } from '@/lib/hooks/use-dashboard'
 
-type DashboardTab = 'overview' | 'categories' | 'alerts'
+type DashboardTab = 'overview' | 'bebidas' | 'contenedores' | 'categories' | 'alerts'
 
 export default function DashboardPage() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats()
   const { data: lowStockProducts = [], isLoading: lowStockLoading } = useLowStockProducts()
   const { data: expiringProducts = [], isLoading: expiringLoading } = useExpiringProducts()
   const { data: categoryStats = [], isLoading: categoriesLoading } = useCategoryStats()
+  const { data: bebidasStats, isLoading: bebidasLoading } = useBebidasStats()
+  const { data: containerStats = [], isLoading: containerStatsLoading } = useContainerStats()
 
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview')
 
-  const loading = statsLoading || lowStockLoading || expiringLoading || categoriesLoading
+  const loading = statsLoading || lowStockLoading || expiringLoading || categoriesLoading || bebidasLoading || containerStatsLoading
 
   if (loading) {
     return <div className="p-8">Cargando...</div>
@@ -42,6 +50,18 @@ export default function DashboardPage() {
       id: 'overview' as DashboardTab,
       name: 'Resumen General',
       icon: Package,
+    },
+    {
+      id: 'bebidas' as DashboardTab,
+      name: 'Bebidas',
+      icon: Beer,
+      badge: bebidasStats?.totalProductos || undefined,
+    },
+    {
+      id: 'contenedores' as DashboardTab,
+      name: 'Contenedores',
+      icon: Archive,
+      badge: containerStats.length || undefined,
     },
     {
       id: 'categories' as DashboardTab,
@@ -177,10 +197,22 @@ export default function DashboardPage() {
               </div>
             )}
 
+            {/* Bebidas y Contenedores - Resumen */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              {bebidasStats && bebidasStats.totalProductos > 0 && (
+                <BebidasCard stats={bebidasStats} onViewMore={() => setActiveTab('bebidas')} />
+              )}
+              <ContainersSummaryCard containerStats={containerStats} onViewMore={() => setActiveTab('contenedores')} />
+            </div>
+
             {/* Category Summary */}
             <CategorySummary categoryStats={categoryStats} />
           </div>
         )}
+
+        {activeTab === 'bebidas' && <BebidasFullView stats={bebidasStats} />}
+
+        {activeTab === 'contenedores' && <ContenedoresFullView containerStats={containerStats} />}
 
         {activeTab === 'categories' && <CategorySummary categoryStats={categoryStats} />}
 
@@ -606,6 +638,470 @@ function CategorySummary({ categoryStats }: { categoryStats: CategoryData[] }) {
           </p>
         </div>
       )}
+    </div>
+  )
+}
+
+function BebidasCard({ stats, onViewMore }: { stats: BebidasStats; onViewMore?: () => void }) {
+  return (
+    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-xl font-bold text-gray-800 flex items-center">
+          <div className="bg-gradient-to-br from-amber-500 to-orange-500 p-2 rounded-lg mr-3">
+            <Beer className="w-6 h-6 text-white" />
+          </div>
+          Bebidas
+        </h3>
+        {onViewMore && (
+          <button
+            onClick={onViewMore}
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+          >
+            Ver detalles →
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-4 rounded-xl border border-amber-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-amber-700 font-semibold text-sm mb-1">Productos</p>
+              <p className="text-3xl font-bold text-amber-600">{stats.totalProductos}</p>
+            </div>
+            <Beer className="w-8 h-8 text-amber-500" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border border-blue-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-700 font-semibold text-sm mb-1">Cajas</p>
+              <p className="text-3xl font-bold text-blue-600">{stats.totalCajas}</p>
+            </div>
+            <Box className="w-8 h-8 text-blue-500" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-xl border border-purple-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-purple-700 font-semibold text-sm mb-1">Unidades</p>
+              <p className="text-3xl font-bold text-purple-600">
+                {stats.totalUnidades.toLocaleString('es-PE')}
+              </p>
+            </div>
+            <Package className="w-8 h-8 text-purple-500" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-green-700 font-semibold text-sm mb-1">Valor Total</p>
+              <p className="text-2xl font-bold text-green-600">
+                S/. {stats.valorTotal.toFixed(2)}
+              </p>
+            </div>
+            <DollarSign className="w-8 h-8 text-green-500" />
+          </div>
+        </div>
+      </div>
+
+      <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
+        <p>
+          <strong>Promedio por caja:</strong> S/. {stats.totalCajas > 0 ? (stats.valorTotal / stats.totalCajas).toFixed(2) : '0.00'}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function ContainersSummaryCard({ containerStats, onViewMore }: { containerStats: ContainerStats[]; onViewMore?: () => void }) {
+  if (containerStats.length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 text-center">
+        <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+          <Archive className="w-8 h-8 text-gray-400" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">No hay contenedores</h3>
+        <p className="text-gray-600">Crea contenedores para organizar tu inventario.</p>
+      </div>
+    )
+  }
+
+  const totalValor = containerStats.reduce((sum, c) => sum + c.valorTotal, 0)
+  const totalProductos = containerStats.reduce((sum, c) => sum + c.totalProductos, 0)
+  const totalCajas = containerStats.reduce((sum, c) => sum + c.totalCajas, 0)
+  const totalEmpaquetados = containerStats.reduce((sum, c) => sum + c.totalEmpaquetados, 0)
+
+  // Top 3 contenedores por valor
+  const topContainers = [...containerStats]
+    .sort((a, b) => b.valorTotal - a.valorTotal)
+    .slice(0, 3)
+
+  return (
+    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-xl font-bold text-gray-800 flex items-center">
+          <div className="bg-gradient-to-br from-indigo-500 to-purple-500 p-2 rounded-lg mr-3">
+            <Archive className="w-6 h-6 text-white" />
+          </div>
+          Contenedores
+        </h3>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+            {containerStats.length} total
+          </span>
+          {onViewMore && (
+            <button
+              onClick={onViewMore}
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            >
+              Ver todos →
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-3 rounded-xl border border-indigo-200 text-center">
+          <p className="text-indigo-700 font-semibold text-xs mb-1">Productos</p>
+          <p className="text-2xl font-bold text-indigo-600">{totalProductos}</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-3 rounded-xl border border-amber-200 text-center">
+          <div className="flex items-center justify-center gap-1 mb-1">
+            <Beer className="w-3 h-3 text-amber-700" />
+            <p className="text-amber-700 font-semibold text-xs">Cajas</p>
+          </div>
+          <p className="text-2xl font-bold text-amber-600">{totalCajas}</p>
+          <p className="text-xs text-amber-600">Bebidas</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-3 rounded-xl border border-blue-200 text-center">
+          <div className="flex items-center justify-center gap-1 mb-1">
+            <Box className="w-3 h-3 text-blue-700" />
+            <p className="text-blue-700 font-semibold text-xs">Empaquetados</p>
+          </div>
+          <p className="text-2xl font-bold text-blue-600">{totalEmpaquetados}</p>
+          <p className="text-xs text-blue-600">Productos</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-3 rounded-xl border border-green-200 text-center">
+          <p className="text-green-700 font-semibold text-xs mb-1">Valor</p>
+          <p className="text-xl font-bold text-green-600">
+            S/. {totalValor.toLocaleString('es-PE', { maximumFractionDigits: 0 })}
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-gray-700 mb-2">Top 3 por valor:</p>
+        {topContainers.map((container, index) => (
+          <div
+            key={container.id}
+            className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200"
+          >
+            <div className="flex items-center space-x-2">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                index === 0 ? 'bg-yellow-400 text-yellow-900' :
+                index === 1 ? 'bg-gray-300 text-gray-700' :
+                'bg-orange-300 text-orange-900'
+              }`}>
+                {index + 1}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-800">{container.nombre}</p>
+                <p className="text-xs text-gray-600">{container.tipo}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-bold text-gray-900">
+                S/. {container.valorTotal.toLocaleString('es-PE', { maximumFractionDigits: 0 })}
+              </p>
+              <div className="flex items-center justify-end gap-2 text-xs text-gray-600">
+                <span>{container.totalProductos} prod.</span>
+                {container.totalCajas > 0 && (
+                  <span className="flex items-center gap-1">
+                    <Beer className="w-3 h-3" />
+                    {container.totalCajas}
+                  </span>
+                )}
+                {container.totalEmpaquetados > 0 && (
+                  <span className="flex items-center gap-1">
+                    <Box className="w-3 h-3" />
+                    {container.totalEmpaquetados}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function BebidasFullView({ stats }: { stats: BebidasStats | undefined }) {
+  if (!stats || stats.totalProductos === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+        <div className="mx-auto w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+          <Beer className="w-12 h-12 text-amber-600" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">No hay bebidas configuradas</h3>
+        <p className="text-gray-600 mb-6">
+          Para ver estadísticas de bebidas, necesitas configurar las unidades por caja en Admin → Bebidas.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header con Estadísticas Principales */}
+      <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl shadow-lg p-6 md:p-8 text-white">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center">
+            <div className="bg-white/20 p-3 rounded-xl mr-4">
+              <Beer className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold">Inventario de Bebidas</h2>
+              <p className="text-amber-100 text-sm md:text-base">Resumen completo de tus bebidas</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+            <p className="text-amber-100 text-sm mb-1">Productos</p>
+            <p className="text-3xl font-bold">{stats.totalProductos}</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+            <p className="text-amber-100 text-sm mb-1 flex items-center gap-1">
+              <Box className="w-3 h-3" /> Cajas
+            </p>
+            <p className="text-3xl font-bold">{stats.totalCajas}</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+            <p className="text-amber-100 text-sm mb-1">Unidades</p>
+            <p className="text-3xl font-bold">{stats.totalUnidades.toLocaleString('es-PE')}</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+            <p className="text-amber-100 text-sm mb-1">Valor Total</p>
+            <p className="text-2xl font-bold">S/. {stats.valorTotal.toFixed(2)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Métricas Adicionales */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">Promedio por Caja</h3>
+            <DollarSign className="w-5 h-5 text-green-600" />
+          </div>
+          <p className="text-3xl font-bold text-green-600">
+            S/. {stats.totalCajas > 0 ? (stats.valorTotal / stats.totalCajas).toFixed(2) : '0.00'}
+          </p>
+          <p className="text-sm text-gray-600 mt-2">Valor promedio por caja</p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">Promedio por Unidad</h3>
+            <Package className="w-5 h-5 text-blue-600" />
+          </div>
+          <p className="text-3xl font-bold text-blue-600">
+            S/. {stats.totalUnidades > 0 ? (stats.valorTotal / stats.totalUnidades).toFixed(2) : '0.00'}
+          </p>
+          <p className="text-sm text-gray-600 mt-2">Valor promedio por unidad</p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">Unidades por Caja</h3>
+            <Box className="w-5 h-5 text-amber-600" />
+          </div>
+          <p className="text-3xl font-bold text-amber-600">
+            {stats.totalCajas > 0 ? Math.round(stats.totalUnidades / stats.totalCajas) : 0}
+          </p>
+          <p className="text-sm text-gray-600 mt-2">Promedio de unidades</p>
+        </div>
+      </div>
+
+      {/* Información Adicional */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <div className="flex items-start gap-3">
+          <Beer className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-blue-900">
+            <p className="font-semibold mb-2">Sobre las Bebidas</p>
+            <ul className="space-y-1 ml-4 list-disc">
+              <li>Las <strong>cajas</strong> se calculan basándose en las unidades por caja configuradas para cada bebida</li>
+              <li>Solo los productos de la categoría "Bebidas" con <strong>unidades_por_caja</strong> configuradas aparecen aquí</li>
+              <li>Puedes configurar las unidades por caja en <strong>Admin → Bebidas</strong></li>
+              <li>Los valores se actualizan automáticamente al agregar o eliminar bebidas</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ContenedoresFullView({ containerStats }: { containerStats: ContainerStats[] }) {
+  if (containerStats.length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+        <div className="mx-auto w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
+          <Archive className="w-12 h-12 text-indigo-600" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">No hay contenedores</h3>
+        <p className="text-gray-600 mb-6">
+          Crea contenedores para organizar tu inventario y ver estadísticas detalladas.
+        </p>
+      </div>
+    )
+  }
+
+  const totalValor = containerStats.reduce((sum, c) => sum + c.valorTotal, 0)
+  const totalProductos = containerStats.reduce((sum, c) => sum + c.totalProductos, 0)
+  const totalCajas = containerStats.reduce((sum, c) => sum + c.totalCajas, 0)
+  const totalEmpaquetados = containerStats.reduce((sum, c) => sum + c.totalEmpaquetados, 0)
+
+  // Ordenar por valor
+  const sortedContainers = [...containerStats].sort((a, b) => b.valorTotal - a.valorTotal)
+
+  return (
+    <div className="space-y-6">
+      {/* Header con Estadísticas Totales */}
+      <div className="bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl shadow-lg p-6 md:p-8 text-white">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center">
+            <div className="bg-white/20 p-3 rounded-xl mr-4">
+              <Archive className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold">Contenedores</h2>
+              <p className="text-indigo-100 text-sm md:text-base">{containerStats.length} contenedores en total</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+            <p className="text-indigo-100 text-sm mb-1">Productos</p>
+            <p className="text-3xl font-bold">{totalProductos}</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+            <p className="text-indigo-100 text-sm mb-1 flex items-center gap-1">
+              <Beer className="w-3 h-3" /> Cajas
+            </p>
+            <p className="text-3xl font-bold">{totalCajas}</p>
+            <p className="text-xs text-indigo-200">Bebidas</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+            <p className="text-indigo-100 text-sm mb-1 flex items-center gap-1">
+              <Box className="w-3 h-3" /> Empaquetados
+            </p>
+            <p className="text-3xl font-bold">{totalEmpaquetados}</p>
+            <p className="text-xs text-indigo-200">Productos</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+            <p className="text-indigo-100 text-sm mb-1">Valor Total</p>
+            <p className="text-2xl font-bold">S/. {totalValor.toLocaleString('es-PE', { maximumFractionDigits: 0 })}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Lista de Todos los Contenedores */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-xl font-semibold text-gray-800 mb-6">Todos los Contenedores</h3>
+
+        <div className="space-y-4">
+          {sortedContainers.map((container, index) => (
+            <div
+              key={container.id}
+              className="bg-gradient-to-r from-gray-50 to-white rounded-xl border-2 border-gray-200 p-5 hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-4 flex-1">
+                  {/* Ranking Badge */}
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                    index === 0 ? 'bg-yellow-400 text-yellow-900' :
+                    index === 1 ? 'bg-gray-300 text-gray-700' :
+                    index === 2 ? 'bg-orange-300 text-orange-900' :
+                    'bg-gray-200 text-gray-600'
+                  }`}>
+                    {index + 1}
+                  </div>
+
+                  {/* Info del Contenedor */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="text-lg font-semibold text-gray-800">{container.nombre}</h4>
+                      <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                        {container.tipo}
+                      </span>
+                    </div>
+
+                    {/* Métricas */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+                      <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-100">
+                        <p className="text-xs text-indigo-700 mb-1">Productos</p>
+                        <p className="text-xl font-bold text-indigo-600">{container.totalProductos}</p>
+                      </div>
+
+                      {container.totalCajas > 0 && (
+                        <div className="bg-amber-50 rounded-lg p-3 border border-amber-100">
+                          <p className="text-xs text-amber-700 mb-1 flex items-center gap-1">
+                            <Beer className="w-3 h-3" /> Cajas
+                          </p>
+                          <p className="text-xl font-bold text-amber-600">{container.totalCajas}</p>
+                        </div>
+                      )}
+
+                      {container.totalEmpaquetados > 0 && (
+                        <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+                          <p className="text-xs text-blue-700 mb-1 flex items-center gap-1">
+                            <Box className="w-3 h-3" /> Empaquetados
+                          </p>
+                          <p className="text-xl font-bold text-blue-600">{container.totalEmpaquetados}</p>
+                        </div>
+                      )}
+
+                      <div className="bg-green-50 rounded-lg p-3 border border-green-100">
+                        <p className="text-xs text-green-700 mb-1">Valor</p>
+                        <p className="text-xl font-bold text-green-600">
+                          S/. {container.valorTotal.toLocaleString('es-PE', { maximumFractionDigits: 0 })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Información Adicional */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <div className="flex items-start gap-3">
+          <Archive className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-blue-900">
+            <p className="font-semibold mb-2">Sobre los Contenedores</p>
+            <ul className="space-y-1 ml-4 list-disc">
+              <li><strong>Cajas 🍺:</strong> Solo para bebidas con unidades_por_caja configuradas</li>
+              <li><strong>Empaquetados 📦:</strong> Para productos normales (carnes, verduras, etc.)</li>
+              <li><strong>Productos:</strong> Cantidad de productos únicos/diferentes en cada contenedor</li>
+              <li>Los valores se actualizan automáticamente al agregar/eliminar productos</li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

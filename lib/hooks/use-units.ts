@@ -89,13 +89,32 @@ export function useDeleteUnit() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // Obtener el nombre de la unidad para el log
-      const { data: unidad } = await supabase
+      // 1. Obtener información de la unidad
+      const { data: unidad, error: unidadError } = await supabase
         .from('unidades_medida')
         .select('nombre, abreviatura')
         .eq('id', id)
         .single()
 
+      if (unidadError) throw unidadError
+
+      // 2. VALIDAR: Verificar si la unidad tiene productos activos
+      const { count: productosCount, error: countError } = await supabase
+        .from('productos')
+        .select('id', { count: 'exact', head: true })
+        .eq('unidad_medida_id', id)
+        .eq('visible', true)
+
+      if (countError) throw countError
+
+      if (productosCount && productosCount > 0) {
+        throw new Error(
+          `No se puede eliminar la unidad "${unidad.nombre} (${unidad.abreviatura})" porque tiene ${productosCount} producto${productosCount === 1 ? '' : 's'} activo${productosCount === 1 ? '' : 's'}. ` +
+          `Debes eliminar o reasignar ${productosCount === 1 ? 'el producto' : 'los productos'} primero.`
+        )
+      }
+
+      // 3. Si no hay productos, proceder con soft delete
       const { error } = await supabase
         .from('unidades_medida')
         .update({ visible: false })
@@ -103,7 +122,7 @@ export function useDeleteUnit() {
 
       if (error) throw error
 
-      // Registrar en log (sin bloquear)
+      // 4. Registrar en log (sin bloquear)
       logDelete(
         'unidades_medida',
         id,
@@ -112,6 +131,9 @@ export function useDeleteUnit() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+      // También invalidar queries relacionadas
+      queryClient.invalidateQueries({ queryKey: ['inventory'] })
+      queryClient.invalidateQueries({ queryKey: ['products'] })
     },
   })
 }

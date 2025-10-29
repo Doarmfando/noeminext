@@ -337,3 +337,220 @@ export function useCategoryStats() {
     queryFn: getProductsByCategory,
   })
 }
+
+// Interfaz para estadísticas de bebidas
+export interface BebidasStats {
+  totalProductos: number
+  totalCajas: number
+  totalUnidades: number
+  valorTotal: number
+}
+
+// Interfaz para estadísticas de contenedores
+export interface ContainerStats {
+  id: string
+  nombre: string
+  tipo: string
+  totalProductos: number
+  totalCajas: number // Solo para bebidas
+  totalEmpaquetados: number // Para productos normales
+  valorTotal: number
+}
+
+// Obtener estadísticas de bebidas
+async function getBebidasStats(): Promise<BebidasStats> {
+  const supabase = createClient()
+
+  // Obtener categoría bebidas
+  const { data: categoria } = await supabase
+    .from('categorias')
+    .select('id')
+    .ilike('nombre', '%bebida%')
+    .eq('visible', true)
+    .limit(1)
+    .maybeSingle()
+
+  if (!categoria) {
+    return {
+      totalProductos: 0,
+      totalCajas: 0,
+      totalUnidades: 0,
+      valorTotal: 0,
+    }
+  }
+
+  // Obtener productos de bebidas con unidades_por_caja configuradas
+  const { data: productosBebidas } = await supabase
+    .from('productos')
+    .select('id, unidades_por_caja, precio_estimado')
+    .eq('categoria_id', categoria.id)
+    .eq('visible', true)
+    .not('unidades_por_caja', 'is', null)
+
+  if (!productosBebidas || productosBebidas.length === 0) {
+    return {
+      totalProductos: 0,
+      totalCajas: 0,
+      totalUnidades: 0,
+      valorTotal: 0,
+    }
+  }
+
+  // Obtener detalles de contenedor para estos productos
+  const productIds = productosBebidas.map(p => p.id)
+
+  const { data: detalles } = await supabase
+    .from('detalle_contenedor')
+    .select(`
+      producto_id,
+      cantidad,
+      precio_real_unidad,
+      contenedores!inner(visible)
+    `)
+    .in('producto_id', productIds)
+    .eq('visible', true)
+    .eq('contenedores.visible', true)
+
+  if (!detalles || detalles.length === 0) {
+    return {
+      totalProductos: productosBebidas.length,
+      totalCajas: 0,
+      totalUnidades: 0,
+      valorTotal: 0,
+    }
+  }
+
+  let totalCajas = 0
+  let totalUnidades = 0
+  let valorTotal = 0
+
+  // Calcular totales por producto
+  for (const producto of productosBebidas) {
+    const detallesProducto = detalles.filter(d => d.producto_id === producto.id)
+    const totalCantidad = detallesProducto.reduce((sum, d) => sum + (d.cantidad || 0), 0)
+
+    // Calcular número de cajas basado en unidades_por_caja
+    const unidadesPorCaja = producto.unidades_por_caja || 1
+    const numeroCajas = Math.floor(totalCantidad / unidadesPorCaja)
+
+    totalCajas += numeroCajas
+    totalUnidades += totalCantidad
+
+    // Calcular valor total
+    valorTotal += detallesProducto.reduce((sum, d) => {
+      const precio = d.precio_real_unidad || producto.precio_estimado || 0
+      return sum + (d.cantidad || 0) * precio
+    }, 0)
+  }
+
+  return {
+    totalProductos: productosBebidas.length,
+    totalCajas,
+    totalUnidades,
+    valorTotal,
+  }
+}
+
+// Obtener estadísticas por contenedor
+async function getContainerStats(): Promise<ContainerStats[]> {
+  const supabase = createClient()
+
+  // Obtener todos los contenedores visibles
+  const { data: contenedores } = await supabase
+    .from('contenedores')
+    .select(`
+      id,
+      nombre,
+      tipo_contenedor:tipos_contenedor(nombre)
+    `)
+    .eq('visible', true)
+    .order('nombre')
+
+  if (!contenedores || contenedores.length === 0) return []
+
+  // Obtener detalles de productos por contenedor
+  const containerIds = contenedores.map(c => c.id)
+
+  const { data: detalles } = await supabase
+    .from('detalle_contenedor')
+    .select(`
+      contenedor_id,
+      cantidad,
+      empaquetado,
+      precio_real_unidad,
+      producto_id,
+      productos!inner(id, precio_estimado, visible, unidades_por_caja)
+    `)
+    .in('contenedor_id', containerIds)
+    .eq('visible', true)
+    .eq('productos.visible', true)
+
+  if (!detalles || detalles.length === 0) {
+    return contenedores.map(c => ({
+      id: c.id,
+      nombre: c.nombre,
+      tipo: (c.tipo_contenedor as any)?.nombre || 'Sin tipo',
+      totalProductos: 0,
+      totalCajas: 0,
+      totalEmpaquetados: 0,
+      valorTotal: 0,
+    }))
+  }
+
+  // Calcular estadísticas por contenedor
+  return contenedores.map(contenedor => {
+    const detallesContenedor = detalles.filter(d => d.contenedor_id === contenedor.id)
+
+    // Agrupar por producto_id para contar productos únicos
+    const productosUnicos = new Set(detallesContenedor.map(d => d.producto_id))
+
+    // Calcular CAJAS (solo para bebidas) y EMPAQUETADOS (para productos normales)
+    let totalCajas = 0
+    let totalEmpaquetados = 0
+
+    for (const detalle of detallesContenedor) {
+      const cantidad = detalle.cantidad || 0
+      const producto = detalle.productos as any
+
+      // Si el producto tiene unidades_por_caja, es una BEBIDA → calcular CAJAS
+      if (producto.unidades_por_caja && producto.unidades_por_caja > 0) {
+        totalCajas += Math.floor(cantidad / producto.unidades_por_caja)
+      } else {
+        // Es un producto NORMAL → calcular EMPAQUETADOS
+        const empaquetado = parseFloat(detalle.empaquetado) || 1
+        totalEmpaquetados += Math.floor(cantidad / empaquetado)
+      }
+    }
+
+    // Calcular valor total
+    const valorTotal = detallesContenedor.reduce((sum, d) => {
+      const precio = d.precio_real_unidad || (d.productos as any)?.precio_estimado || 0
+      return sum + (d.cantidad || 0) * precio
+    }, 0)
+
+    return {
+      id: contenedor.id,
+      nombre: contenedor.nombre,
+      tipo: (contenedor.tipo_contenedor as any)?.nombre || 'Sin tipo',
+      totalProductos: productosUnicos.size,
+      totalCajas,
+      totalEmpaquetados,
+      valorTotal,
+    }
+  })
+}
+
+// Hooks para las nuevas estadísticas
+export function useBebidasStats() {
+  return useQuery({
+    queryKey: ['bebidas-stats'],
+    queryFn: getBebidasStats,
+  })
+}
+
+export function useContainerStats() {
+  return useQuery({
+    queryKey: ['container-stats'],
+    queryFn: getContainerStats,
+  })
+}
