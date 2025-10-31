@@ -20,7 +20,7 @@ import {
   ChevronRight,
   Menu,
   X,
-  Beer
+  GlassWater
 } from 'lucide-react'
 import { logout } from '@/lib/auth/actions'
 import { Usuario } from '@/lib/auth/get-user'
@@ -39,7 +39,7 @@ const menuItems = [
 ]
 
 const adminMenuItems = [
-  { href: '/admin/bebidas', label: 'Bebidas', icon: Beer, permiso: 'admin.bebidas.view' },
+  { href: '/admin/bebidas', label: 'Bebidas', icon: GlassWater, permiso: 'admin.bebidas.view' },
   { href: '/admin/categories', label: 'Categorías', icon: Tag, permiso: 'admin.categories.view' },
   { href: '/admin/units', label: 'Unidades', icon: Ruler, permiso: 'admin.units.view' },
   { href: '/admin/roles', label: 'Roles', icon: Shield, permiso: 'admin.roles.view' },

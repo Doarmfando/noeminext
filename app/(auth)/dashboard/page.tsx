@@ -11,7 +11,7 @@ import {
   TrendingUp,
   AlertCircle,
   Package2,
-  Beer,
+  GlassWater,
   Box,
 } from 'lucide-react'
 import {
@@ -54,7 +54,7 @@ export default function DashboardPage() {
     {
       id: 'bebidas' as DashboardTab,
       name: 'Bebidas',
-      icon: Beer,
+      icon: GlassWater,
       badge: bebidasStats?.totalProductos || undefined,
     },
     {
@@ -648,7 +648,7 @@ function BebidasCard({ stats, onViewMore }: { stats: BebidasStats; onViewMore?: 
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-xl font-bold text-gray-800 flex items-center">
           <div className="bg-gradient-to-br from-amber-500 to-orange-500 p-2 rounded-lg mr-3">
-            <Beer className="w-6 h-6 text-white" />
+            <GlassWater className="w-6 h-6 text-white" />
           </div>
           Bebidas
         </h3>
@@ -669,7 +669,7 @@ function BebidasCard({ stats, onViewMore }: { stats: BebidasStats; onViewMore?: 
               <p className="text-amber-700 font-semibold text-sm mb-1">Productos</p>
               <p className="text-3xl font-bold text-amber-600">{stats.totalProductos}</p>
             </div>
-            <Beer className="w-8 h-8 text-amber-500" />
+            <GlassWater className="w-8 h-8 text-amber-500" />
           </div>
         </div>
 
@@ -772,7 +772,7 @@ function ContainersSummaryCard({ containerStats, onViewMore }: { containerStats:
 
         <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-3 rounded-xl border border-amber-200 text-center">
           <div className="flex items-center justify-center gap-1 mb-1">
-            <Beer className="w-3 h-3 text-amber-700" />
+            <GlassWater className="w-3 h-3 text-amber-700" />
             <p className="text-amber-700 font-semibold text-xs">Cajas</p>
           </div>
           <p className="text-2xl font-bold text-amber-600">{totalCajas}</p>
@@ -824,7 +824,7 @@ function ContainersSummaryCard({ containerStats, onViewMore }: { containerStats:
                 <span>{container.totalProductos} prod.</span>
                 {container.totalCajas > 0 && (
                   <span className="flex items-center gap-1">
-                    <Beer className="w-3 h-3" />
+                    <GlassWater className="w-3 h-3" />
                     {container.totalCajas}
                   </span>
                 )}
@@ -848,7 +848,7 @@ function BebidasFullView({ stats }: { stats: BebidasStats | undefined }) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
         <div className="mx-auto w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center mb-4">
-          <Beer className="w-12 h-12 text-amber-600" />
+          <GlassWater className="w-12 h-12 text-amber-600" />
         </div>
         <h3 className="text-lg font-semibold text-gray-800 mb-2">No hay bebidas configuradas</h3>
         <p className="text-gray-600 mb-6">
@@ -865,7 +865,7 @@ function BebidasFullView({ stats }: { stats: BebidasStats | undefined }) {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
             <div className="bg-white/20 p-3 rounded-xl mr-4">
-              <Beer className="w-8 h-8 text-white" />
+              <GlassWater className="w-8 h-8 text-white" />
             </div>
             <div>
               <h2 className="text-2xl md:text-3xl font-bold">Inventario de Bebidas</h2>
@@ -935,7 +935,7 @@ function BebidasFullView({ stats }: { stats: BebidasStats | undefined }) {
       {/* Información Adicional */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
         <div className="flex items-start gap-3">
-          <Beer className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+          <GlassWater className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
           <div className="text-sm text-blue-900">
             <p className="font-semibold mb-2">Sobre las Bebidas</p>
             <ul className="space-y-1 ml-4 list-disc">
@@ -997,7 +997,7 @@ function ContenedoresFullView({ containerStats }: { containerStats: ContainerSta
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
             <p className="text-indigo-100 text-sm mb-1 flex items-center gap-1">
-              <Beer className="w-3 h-3" /> Cajas
+              <GlassWater className="w-3 h-3" /> Cajas
             </p>
             <p className="text-3xl font-bold">{totalCajas}</p>
             <p className="text-xs text-indigo-200">Bebidas</p>
@@ -1057,7 +1057,7 @@ function ContenedoresFullView({ containerStats }: { containerStats: ContainerSta
                       {container.totalCajas > 0 && (
                         <div className="bg-amber-50 rounded-lg p-3 border border-amber-100">
                           <p className="text-xs text-amber-700 mb-1 flex items-center gap-1">
-                            <Beer className="w-3 h-3" /> Cajas
+                            <GlassWater className="w-3 h-3" /> Cajas
                           </p>
                           <p className="text-xl font-bold text-amber-600">{container.totalCajas}</p>
                         </div>

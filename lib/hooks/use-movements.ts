@@ -32,6 +32,11 @@ export interface CreateMovementData {
   actualizar_precio_lote?: boolean  // Flag para indicar si se debe actualizar el precio del lote
 }
 
+export interface UpdateMovementData extends CreateMovementData {
+  id: string  // ID del movimiento a actualizar
+  lote_id_anterior?: string  // Para rastrear si cambió el lote
+}
+
 // Obtener movimientos
 async function getMovements(filters: MovementFilters = {}) {
   const supabase = createClient()
@@ -355,6 +360,196 @@ async function createMovement(data: CreateMovementData) {
   return movimiento
 }
 
+// Actualizar movimiento existente
+async function updateMovement(data: UpdateMovementData) {
+  const supabase = createClient()
+
+  // 1. Obtener el movimiento original
+  const { data: movimientoOriginal, error: errorOriginal } = await supabase
+    .from('movimientos')
+    .select('*')
+    .eq('id', data.id)
+    .single()
+
+  if (errorOriginal || !movimientoOriginal) {
+    throw new Error('Movimiento no encontrado')
+  }
+
+  // 2. Revertir el efecto del movimiento original en el lote
+  // Encontrar el lote afectado originalmente
+  const { data: lotesOriginales } = await supabase
+    .from('detalle_contenedor')
+    .select('*')
+    .eq('producto_id', movimientoOriginal.producto_id)
+    .eq('contenedor_id', movimientoOriginal.contenedor_id)
+    .eq('visible', true)
+    .order('fecha_vencimiento', { ascending: true, nullsFirst: false })
+
+  // Revertir cambios en el lote original
+  if (lotesOriginales && lotesOriginales.length > 0) {
+    // Si fue una entrada, restar la cantidad del lote
+    if (movimientoOriginal.stock_nuevo > movimientoOriginal.stock_anterior) {
+      const cantidadOriginal = movimientoOriginal.cantidad
+      // Buscar y revertir en el primer lote (simplificado)
+      const loteOriginal = data.lote_id_anterior
+        ? lotesOriginales.find(l => l.id === data.lote_id_anterior)
+        : lotesOriginales[0]
+
+      if (loteOriginal) {
+        const nuevaCantidad = (loteOriginal.cantidad || 0) - cantidadOriginal
+        if (nuevaCantidad > 0) {
+          await supabase
+            .from('detalle_contenedor')
+            .update({ cantidad: nuevaCantidad })
+            .eq('id', loteOriginal.id)
+        } else {
+          // Eliminar el lote si quedó en 0
+          await supabase
+            .from('detalle_contenedor')
+            .update({ visible: false })
+            .eq('id', loteOriginal.id)
+        }
+      }
+    }
+    // Si fue una salida, sumar la cantidad de vuelta al lote
+    else if (movimientoOriginal.stock_nuevo < movimientoOriginal.stock_anterior) {
+      const cantidadOriginal = movimientoOriginal.cantidad
+      const loteOriginal = data.lote_id_anterior
+        ? lotesOriginales.find(l => l.id === data.lote_id_anterior)
+        : lotesOriginales[0]
+
+      if (loteOriginal) {
+        await supabase
+          .from('detalle_contenedor')
+          .update({ cantidad: (loteOriginal.cantidad || 0) + cantidadOriginal })
+          .eq('id', loteOriginal.id)
+      }
+    }
+  }
+
+  // 3. Calcular nuevo stock
+  const { data: lotesActuales } = await supabase
+    .from('detalle_contenedor')
+    .select('*')
+    .eq('producto_id', data.producto_id)
+    .eq('contenedor_id', data.contenedor_id)
+    .eq('visible', true)
+
+  const stockActual = lotesActuales?.reduce((sum, lote) => sum + (lote.cantidad || 0), 0) || 0
+
+  let stockNuevo = stockActual
+  if (data.tipo_movimiento === 'entrada') {
+    stockNuevo = stockActual + data.cantidad
+  } else {
+    stockNuevo = stockActual - data.cantidad
+  }
+
+  if (stockNuevo < 0) {
+    throw new Error('No hay suficiente stock para realizar la salida')
+  }
+
+  // 4. Actualizar el registro del movimiento
+  const { data: movimientoActualizado, error: errorUpdate } = await supabase
+    .from('movimientos')
+    .update({
+      producto_id: data.producto_id,
+      contenedor_id: data.contenedor_id,
+      cantidad: data.cantidad,
+      motivo_movimiento_id: data.motivo_movimiento_id,
+      observacion: data.observacion,
+      precio_real: data.precio_real,
+      numero_documento: data.numero_documento,
+      stock_anterior: stockActual,
+      stock_nuevo: stockNuevo,
+    })
+    .eq('id', data.id)
+    .select()
+    .single()
+
+  if (errorUpdate) throw errorUpdate
+
+  // 5. Aplicar el nuevo efecto en el lote
+  let loteEspecifico = null
+  if (data.lote_id) {
+    const { data: lote } = await supabase
+      .from('detalle_contenedor')
+      .select('*')
+      .eq('id', data.lote_id)
+      .single()
+    loteEspecifico = lote
+  }
+
+  if (data.tipo_movimiento === 'salida' && loteEspecifico) {
+    await procesarSalidaLote(supabase, loteEspecifico, data.cantidad)
+  } else if (data.tipo_movimiento === 'entrada') {
+    if (loteEspecifico) {
+      await procesarEntradaLote(
+        supabase,
+        loteEspecifico,
+        data.cantidad,
+        data.precio_real,
+        data.actualizar_precio_lote
+      )
+    } else {
+      // Crear nuevo lote
+      const { data: productoInfo } = await supabase
+        .from('productos')
+        .select('unidades_por_caja')
+        .eq('id', data.producto_id)
+        .single()
+
+      let cantidadPorEmpaquetado: number
+      if (productoInfo?.unidades_por_caja && productoInfo.unidades_por_caja > 0) {
+        cantidadPorEmpaquetado = productoInfo.unidades_por_caja
+      } else {
+        cantidadPorEmpaquetado = data.numero_empaquetados
+          ? data.cantidad / data.numero_empaquetados
+          : data.cantidad
+      }
+
+      await supabase
+        .from('detalle_contenedor')
+        .insert({
+          producto_id: data.producto_id,
+          contenedor_id: data.contenedor_id,
+          cantidad: data.cantidad,
+          empaquetado: String(cantidadPorEmpaquetado),
+          precio_real_unidad: data.precio_real,
+          fecha_vencimiento: data.fecha_vencimiento || null,
+          estado_producto_id: data.estado_producto_id || null,
+          visible: true,
+        })
+    }
+  }
+
+  // 6. Registrar en log
+  const { data: producto } = await supabase
+    .from('productos')
+    .select('nombre')
+    .eq('id', data.producto_id)
+    .single()
+
+  const { data: contenedor } = await supabase
+    .from('contenedores')
+    .select('nombre')
+    .eq('id', data.contenedor_id)
+    .single()
+
+  const { data: motivo } = await supabase
+    .from('motivos_movimiento')
+    .select('nombre')
+    .eq('id', data.motivo_movimiento_id)
+    .single()
+
+  await logCreate(
+    'movimientos',
+    movimientoActualizado.id,
+    `Movimiento actualizado: ${producto?.nombre || data.producto_id} - ${data.cantidad} unidades - ${motivo?.nombre || 'Sin motivo'} - Contenedor: ${contenedor?.nombre || data.contenedor_id}`
+  )
+
+  return movimientoActualizado
+}
+
 // Procesar salida de un lote específico
 async function procesarSalidaLote(supabase: any, lote: any, cantidadASacar: number) {
   const cantidadActual = lote.cantidad || 0
@@ -574,6 +769,18 @@ export function useCreateMovement() {
 
   return useMutation({
     mutationFn: createMovement,
+    onSuccess: () => {
+      // Invalidar TODAS las queries relacionadas con inventario y stock
+      invalidateInventoryQueries(queryClient)
+    },
+  })
+}
+
+export function useUpdateMovement() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: updateMovement,
     onSuccess: () => {
       // Invalidar TODAS las queries relacionadas con inventario y stock
       invalidateInventoryQueries(queryClient)

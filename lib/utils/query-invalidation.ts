@@ -15,6 +15,7 @@ export function invalidateInventoryQueries(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: ['kardex'] })
   queryClient.invalidateQueries({ queryKey: ['containers-with-products'] })
   queryClient.invalidateQueries({ queryKey: ['containers'] })
+  queryClient.invalidateQueries({ queryKey: ['product-lots'] }) // Lotes de productos
 
   // Dashboard
   queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })

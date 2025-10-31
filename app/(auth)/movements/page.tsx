@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
-import { Plus, ArrowUpDown, FileText, Eye } from 'lucide-react'
+import { Plus, ArrowUpDown, FileText, Eye, Edit2 } from 'lucide-react'
 import {
   useMovements,
   type MovementFilters,
@@ -25,6 +25,7 @@ const MovementDetailModal = dynamic(() => import('./components/MovementDetailMod
 export default function MovementsPage() {
   const [filters, setFilters] = useState<MovementFilters>({})
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [editingMovement, setEditingMovement] = useState<any>(null)
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
   const [selectedMovement, setSelectedMovement] = useState<any>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -324,7 +325,7 @@ export default function MovementsPage() {
                       </div>
                     </td>
                     <td className="px-3 md:px-4 py-3 whitespace-nowrap text-center">
-                      <div className="flex items-center justify-center gap-2">
+                      <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => setSelectedMovement(movement)}
                           className="p-1 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded transition-colors"
@@ -333,10 +334,17 @@ export default function MovementsPage() {
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={() => setEditingMovement(movement)}
+                          className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                          title="Editar movimiento"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() =>
                             setSelectedProduct({ id: product.id, nombre: product.nombre })
                           }
-                          className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                          className="p-1 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors"
                           title="Ver kardex"
                         >
                           <FileText className="w-4 h-4" />
@@ -366,6 +374,14 @@ export default function MovementsPage() {
         <MovementFormModal
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => setShowCreateModal(false)}
+        />
+      )}
+
+      {editingMovement && (
+        <MovementFormModal
+          movement={editingMovement}
+          onClose={() => setEditingMovement(null)}
+          onSuccess={() => setEditingMovement(null)}
         />
       )}
 
