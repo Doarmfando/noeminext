@@ -37,6 +37,11 @@ export interface UpdateMovementData extends CreateMovementData {
   lote_id_anterior?: string  // Para rastrear si cambió el lote
 }
 
+export interface AnularMovementData {
+  id: string  // ID del movimiento a anular
+  motivo_anulacion: string  // Motivo obligatorio de la anulación
+}
+
 // Obtener movimientos
 async function getMovements(filters: MovementFilters = {}) {
   const supabase = createClient()
@@ -62,6 +67,7 @@ async function getMovements(filters: MovementFilters = {}) {
         tipo_movimiento
       )
     `)
+    .eq('visible', true)  // Solo movimientos visibles (no anulados)
     .order('fecha_movimiento', { ascending: false })
 
   if (filters.producto_id) {
@@ -550,6 +556,119 @@ async function updateMovement(data: UpdateMovementData) {
   return movimientoActualizado
 }
 
+// Anular movimiento existente (soft delete con reversión)
+async function anularMovement(data: AnularMovementData) {
+  const supabase = createClient()
+
+  // 1. Obtener el movimiento original
+  const { data: movimiento, error: errorMovimiento } = await supabase
+    .from('movimientos')
+    .select('*')
+    .eq('id', data.id)
+    .single()
+
+  if (errorMovimiento || !movimiento) {
+    throw new Error('Movimiento no encontrado')
+  }
+
+  // 2. Verificar que no esté ya anulado (visible = false)
+  if (movimiento.visible === false) {
+    throw new Error('Este movimiento ya fue anulado')
+  }
+
+  // 3. Verificar que tenga menos de 24 horas
+  const fechaMovimiento = new Date(movimiento.fecha_movimiento)
+  const ahora = new Date()
+  const diferenciaHoras = (ahora.getTime() - fechaMovimiento.getTime()) / (1000 * 60 * 60)
+
+  if (diferenciaHoras > 24) {
+    throw new Error('Solo se pueden anular movimientos de las últimas 24 horas')
+  }
+
+  // 4. Obtener el lote afectado
+  const { data: lotes } = await supabase
+    .from('detalle_contenedor')
+    .select('*')
+    .eq('producto_id', movimiento.producto_id)
+    .eq('contenedor_id', movimiento.contenedor_id)
+    .eq('visible', true)
+    .order('fecha_vencimiento', { ascending: true, nullsFirst: false })
+
+  if (!lotes || lotes.length === 0) {
+    throw new Error('No se encontró el lote asociado')
+  }
+
+  // 5. Revertir el efecto en el lote (inverso de lo que hizo)
+  // Si fue ENTRADA, ahora hay que RESTAR
+  // Si fue SALIDA, ahora hay que SUMAR
+  const tipoMovimiento = movimiento.stock_nuevo > movimiento.stock_anterior ? 'entrada' : 'salida'
+  const cantidadOriginal = movimiento.cantidad
+
+  // Buscar el primer lote para revertir
+  const loteAfectado = lotes[0]
+
+  if (tipoMovimiento === 'entrada') {
+    // Fue una entrada, ahora restamos
+    const nuevaCantidad = (loteAfectado.cantidad || 0) - cantidadOriginal
+    if (nuevaCantidad >= 0) {
+      if (nuevaCantidad > 0) {
+        await supabase
+          .from('detalle_contenedor')
+          .update({ cantidad: nuevaCantidad })
+          .eq('id', loteAfectado.id)
+      } else {
+        // Si queda en 0, hacer soft delete del lote
+        await supabase
+          .from('detalle_contenedor')
+          .update({ visible: false })
+          .eq('id', loteAfectado.id)
+      }
+    }
+  } else {
+    // Fue una salida, ahora sumamos de vuelta
+    await supabase
+      .from('detalle_contenedor')
+      .update({ cantidad: (loteAfectado.cantidad || 0) + cantidadOriginal })
+      .eq('id', loteAfectado.id)
+  }
+
+  // 6. Marcar el movimiento como anulado (soft delete con visible = false)
+  const { data: movimientoAnulado, error: errorAnular } = await supabase
+    .from('movimientos')
+    .update({
+      visible: false,
+      motivo_anulacion: data.motivo_anulacion,
+      fecha_anulacion: new Date().toISOString(),
+    })
+    .eq('id', data.id)
+    .select()
+    .single()
+
+  if (errorAnular) throw errorAnular
+
+  // 7. Obtener información para el log
+  const { data: producto } = await supabase
+    .from('productos')
+    .select('nombre')
+    .eq('id', movimiento.producto_id)
+    .single()
+
+  const { data: contenedor } = await supabase
+    .from('contenedores')
+    .select('nombre')
+    .eq('id', movimiento.contenedor_id)
+    .single()
+
+  // 8. Registrar en log
+  await logCreate(
+    'movimientos',
+    movimientoAnulado.id,
+    `Movimiento ANULADO: ${producto?.nombre || movimiento.producto_id} - ${movimiento.cantidad} unidades - Contenedor: ${contenedor?.nombre || movimiento.contenedor_id} - Motivo: ${data.motivo_anulacion}`
+  )
+
+  return movimientoAnulado
+}
+
 // Procesar salida de un lote específico
 async function procesarSalidaLote(supabase: any, lote: any, cantidadASacar: number) {
   const cantidadActual = lote.cantidad || 0
@@ -781,6 +900,18 @@ export function useUpdateMovement() {
 
   return useMutation({
     mutationFn: updateMovement,
+    onSuccess: () => {
+      // Invalidar TODAS las queries relacionadas con inventario y stock
+      invalidateInventoryQueries(queryClient)
+    },
+  })
+}
+
+export function useAnularMovement() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: anularMovement,
     onSuccess: () => {
       // Invalidar TODAS las queries relacionadas con inventario y stock
       invalidateInventoryQueries(queryClient)

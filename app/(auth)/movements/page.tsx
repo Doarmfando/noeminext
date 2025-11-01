@@ -2,13 +2,14 @@
 
 import { useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
-import { Plus, ArrowUpDown, FileText, Eye, Edit2 } from 'lucide-react'
+import { Plus, ArrowUpDown, FileText, Eye, Edit2, Ban } from 'lucide-react'
 import {
   useMovements,
   type MovementFilters,
   type MovementType,
 } from '@/lib/hooks/use-movements'
 import { useInventory, useContainers } from '@/lib/hooks/use-inventory'
+import { usePermisosUsuario } from '@/lib/hooks/use-permissions'
 import { Pagination } from '@/components/ui/pagination'
 
 // Lazy load modales - solo se cargan cuando se abren
@@ -21,19 +22,39 @@ const KardexModal = dynamic(() => import('./components/KardexModal').then(mod =>
 const MovementDetailModal = dynamic(() => import('./components/MovementDetailModal').then(mod => ({ default: mod.MovementDetailModal })), {
   ssr: false,
 })
+const AnularMovementModal = dynamic(() => import('./components/AnularMovementModal').then(mod => ({ default: mod.AnularMovementModal })), {
+  ssr: false,
+})
 
 export default function MovementsPage() {
   const [filters, setFilters] = useState<MovementFilters>({})
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingMovement, setEditingMovement] = useState<any>(null)
+  const [anulandoMovement, setAnulandoMovement] = useState<any>(null)
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
   const [selectedMovement, setSelectedMovement] = useState<any>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(25)
 
-  const { data: movements = [], isLoading } = useMovements(filters)
+  const { data: movements = [], isLoading: movementsLoading } = useMovements(filters)
   const { data: inventory = [] } = useInventory()
   const { data: containers = [] } = useContainers()
+
+  // Verificar TODOS los permisos en UNA SOLA llamada
+  const { data: userPermissions = [], isLoading: permissionsLoading } = usePermisosUsuario()
+
+  // Combinar estados de carga - solo mostrar cuando AMBOS estén listos
+  const isLoading = movementsLoading || permissionsLoading
+
+  // Extraer códigos de permisos del usuario
+  const userPermissionCodes = userPermissions.map(p => p.codigo)
+
+  // Derivar permisos individuales de la lista completa (sin hooks adicionales)
+  const canCreate = userPermissionCodes.includes('movements.create')
+  const canEdit = userPermissionCodes.includes('movements.edit')
+  const canCancel = userPermissionCodes.includes('movements.cancel')
+  const canViewDetail = userPermissionCodes.includes('movements.detail')
+  const canViewKardex = userPermissionCodes.includes('movements.kardex')
 
   // Extraer productos únicos (memoizado)
   const products = useMemo(() => {
@@ -175,21 +196,34 @@ export default function MovementsPage() {
           </div>
 
           <div className="flex items-end sm:col-span-2 lg:col-span-1">
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 md:w-5 md:h-5" />
-              <span className="text-sm md:text-base">Nuevo Movimiento</span>
-            </button>
+            {canCreate && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              >
+                <Plus className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="text-sm md:text-base">Nuevo Movimiento</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
 
+      {/* Loading State */}
+      {isLoading && movements.length === 0 && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12">
+          <div className="flex flex-col items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+            <p className="text-gray-600">Cargando movimientos...</p>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+      {!isLoading && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-3 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
@@ -228,17 +262,7 @@ export default function MovementsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {isLoading && movements.length === 0 && (
-                <tr>
-                  <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
-                    <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                      <span className="ml-3">Cargando movimientos...</span>
-                    </div>
-                  </td>
-                </tr>
-              )}
-              {!isLoading && movements.length === 0 && (
+              {movements.length === 0 && (
                 <tr>
                   <td colSpan={11} className="px-6 py-12 text-center text-gray-500">
                     <ArrowUpDown className="w-12 h-12 mx-auto mb-4 text-gray-400" />
@@ -252,9 +276,16 @@ export default function MovementsPage() {
                 const unit = (product as any).unidades_medida
                 const tipoMovimiento = movement.motivos_movimiento?.tipo_movimiento
                 const valorTotal = (movement.cantidad || 0) * (movement.precio_real || 0)
+                const estaAnulado = movement.visible === false
+
+                // Calcular si tiene menos de 24 horas
+                const fechaMovimiento = new Date(movement.fecha_movimiento)
+                const ahora = new Date()
+                const diferenciaHoras = (ahora.getTime() - fechaMovimiento.getTime()) / (1000 * 60 * 60)
+                const puedeAnular = diferenciaHoras <= 24 && movement.visible !== false
 
                 return (
-                  <tr key={movement.id} className="hover:bg-gray-50">
+                  <tr key={movement.id} className={`hover:bg-gray-50 ${estaAnulado ? 'bg-red-50 opacity-60' : ''}`}>
                     <td className="px-3 md:px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                       <div className="text-sm font-medium">
                         {new Date(movement.fecha_movimiento).toLocaleDateString('es-PE')}
@@ -267,9 +298,20 @@ export default function MovementsPage() {
                       </div>
                     </td>
                     <td className="px-3 md:px-4 py-3">
-                      <div className="font-medium text-gray-900 text-sm">{product.nombre}</div>
-                      <div className="text-xs text-gray-500">
-                        {(product as any).categorias?.nombre || '-'}
+                      <div className="flex items-center gap-2">
+                        <div>
+                          <div className={`font-medium text-sm ${estaAnulado ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                            {product.nombre}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {(product as any).categorias?.nombre || '-'}
+                          </div>
+                        </div>
+                        {estaAnulado && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            ANULADO
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="hidden md:table-cell px-3 md:px-4 py-3 text-sm text-gray-600">
@@ -326,29 +368,53 @@ export default function MovementsPage() {
                     </td>
                     <td className="px-3 md:px-4 py-3 whitespace-nowrap text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => setSelectedMovement(movement)}
-                          className="p-1 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded transition-colors"
-                          title="Ver detalle"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setEditingMovement(movement)}
-                          className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
-                          title="Editar movimiento"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            setSelectedProduct({ id: product.id, nombre: product.nombre })
-                          }
-                          className="p-1 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors"
-                          title="Ver kardex"
-                        >
-                          <FileText className="w-4 h-4" />
-                        </button>
+                        {canViewDetail && (
+                          <button
+                            onClick={() => setSelectedMovement(movement)}
+                            className="p-1 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded transition-colors"
+                            title="Ver detalle"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        )}
+                        {!estaAnulado && (
+                          <>
+                            {canEdit && (
+                              <button
+                                onClick={() => setEditingMovement(movement)}
+                                className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                                title="Editar movimiento"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                            )}
+                            {canCancel && (
+                              <button
+                                onClick={() => setAnulandoMovement(movement)}
+                                disabled={!puedeAnular}
+                                className={`p-1 rounded transition-colors ${
+                                  puedeAnular
+                                    ? 'text-red-600 hover:text-red-800 hover:bg-red-50'
+                                    : 'text-gray-300 cursor-not-allowed'
+                                }`}
+                                title={puedeAnular ? 'Anular movimiento' : 'Solo se pueden anular movimientos de las últimas 24 horas'}
+                              >
+                                <Ban className="w-4 h-4" />
+                              </button>
+                            )}
+                          </>
+                        )}
+                        {canViewKardex && (
+                          <button
+                            onClick={() =>
+                              setSelectedProduct({ id: product.id, nombre: product.nombre })
+                            }
+                            className="p-1 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors"
+                            title="Ver kardex"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -367,17 +433,18 @@ export default function MovementsPage() {
             onItemsPerPageChange={setItemsPerPage}
           />
         )}
-      </div>
+        </div>
+      )}
 
       {/* Modals */}
-      {showCreateModal && (
+      {canCreate && showCreateModal && (
         <MovementFormModal
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => setShowCreateModal(false)}
         />
       )}
 
-      {editingMovement && (
+      {canEdit && editingMovement && (
         <MovementFormModal
           movement={editingMovement}
           onClose={() => setEditingMovement(null)}
@@ -385,11 +452,19 @@ export default function MovementsPage() {
         />
       )}
 
-      {selectedProduct && (
+      {canCancel && anulandoMovement && (
+        <AnularMovementModal
+          movement={anulandoMovement}
+          onClose={() => setAnulandoMovement(null)}
+          onSuccess={() => setAnulandoMovement(null)}
+        />
+      )}
+
+      {canViewKardex && selectedProduct && (
         <KardexModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
       )}
 
-      {selectedMovement && (
+      {canViewDetail && selectedMovement && (
         <MovementDetailModal
           movement={selectedMovement}
           onClose={() => setSelectedMovement(null)}
