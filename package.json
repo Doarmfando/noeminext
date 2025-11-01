@@ -6,6 +6,7 @@
     "start": "next start",
     "lint": "next lint",
     "fix-duplicates": "tsx scripts/fix-duplicate-inventory.ts",
+    "fix-auth-users": "tsx scripts/fix-auth-user-id.ts",
     "sync-env": "powershell -ExecutionPolicy Bypass -File ./scripts/sync-env.ps1",
     "sync-env:bash": "bash ./scripts/sync-env.sh",
     "migration:bebidas": "tsx scripts/run-migration-unidades-por-caja.ts"

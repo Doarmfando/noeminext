@@ -86,6 +86,7 @@ export async function createUserInAuth(userData: {
       .from('usuarios')
       .insert({
         id: authUser.user.id, // Usar el mismo ID de Supabase Auth
+        auth_user_id: authUser.user.id, // ✅ CRÍTICO: Vincular con Auth
         nombre_usuario: userData.nombre_usuario,
         email: userData.email,
         nombre: userData.nombre,

@@ -19,7 +19,9 @@
       "Bash(ls:*)",
       "Bash(find:*)",
       "Bash(powershell -Command:*)",
-      "Bash(if exist .next echo \".next existe aun\")"
+      "Bash(if exist .next echo \".next existe aun\")",
+      "Bash(tree:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
