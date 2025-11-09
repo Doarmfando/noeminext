@@ -12,7 +12,7 @@ import {
   type InventoryFilters,
 } from '@/lib/hooks/use-inventory'
 import { Pagination } from '@/components/ui/pagination'
-import { useHasPermissions } from '@/lib/hooks/use-permissions'
+import { usePermisosUsuario } from '@/lib/hooks/use-permissions'
 
 // Lazy load modales - solo se cargan cuando se abren
 const ProductFormModal = dynamic(() => import('./components/ProductFormModal').then(mod => ({ default: mod.ProductFormModal })), {
@@ -37,14 +37,13 @@ export default function InventoryPage() {
   const { data: categories = [] } = useCategories()
   const deleteMutation = useDeleteProduct()
 
-  // Verificar permisos
-  const permissionsCreate = useHasPermissions(['inventory.create'])
-  const permissionsEdit = useHasPermissions(['inventory.edit'])
-  const permissionsDelete = useHasPermissions(['inventory.delete'])
+  // Verificar permisos - una sola llamada para evitar re-renders progresivos
+  const { data: userPermisos = [], isLoading: isLoadingPermissions } = usePermisosUsuario()
+  const userCodigos = useMemo(() => userPermisos.map(p => p.codigo), [userPermisos])
 
-  const canCreate = permissionsCreate.hasAny
-  const canEdit = permissionsEdit.hasAny
-  const canDelete = permissionsDelete.hasAny
+  const canCreate = userCodigos.includes('inventory.create')
+  const canEdit = userCodigos.includes('inventory.edit')
+  const canDelete = userCodigos.includes('inventory.delete')
 
   const handleDelete = async (product: any) => {
     if (!confirm(`¿Estás seguro de eliminar el producto "${product.productos.nombre}"?`)) {

@@ -34,22 +34,13 @@ export function AddProductToContainerModal({
     new Map(inventory.map((item: any) => [item.producto_id, item.productos])).values()
   )
 
-  // Obtener IDs de productos que ya están en este contenedor
-  const productosEnContenedor = new Set(
-    (container.productos || []).map((p: any) => p.producto_id)
-  )
-
-  // Filtrar productos disponibles (que NO están en el contenedor)
-  const productosDisponibles = allProducts.filter(
-    (p: any) => !productosEnContenedor.has(p.id)
-  )
-
-  // Aplicar búsqueda
+  // Aplicar búsqueda directamente sobre todos los productos
+  // Permitimos que el mismo producto se agregue múltiples veces (diferentes lotes, fechas, precios)
   const productosFiltrados = searchTerm
-    ? productosDisponibles.filter((p: any) =>
+    ? allProducts.filter((p: any) =>
         p.nombre.toLowerCase().includes(searchTerm.toLowerCase())
       )
-    : productosDisponibles
+    : allProducts
 
   const handleProductSelect = (product: any) => {
     setSelectedProduct(product)
@@ -139,7 +130,7 @@ export function AddProductToContainerModal({
                   <p className="text-gray-500">
                     {searchTerm
                       ? 'No se encontraron productos con ese nombre'
-                      : 'Todos los productos ya están en este contenedor'}
+                      : 'No hay productos disponibles en el inventario'}
                   </p>
                 </div>
               )}

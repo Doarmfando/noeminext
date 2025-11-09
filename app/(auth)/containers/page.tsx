@@ -11,7 +11,7 @@ import {
 } from '@/lib/hooks/use-containers'
 import { useToast } from '@/lib/contexts/toast-context'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { useHasPermissions } from '@/lib/hooks/use-permissions'
+import { usePermisosUsuario } from '@/lib/hooks/use-permissions'
 
 // Lazy load modales - solo se cargan cuando se abren
 const ContainerFormModal = dynamic(() => import('./components/ContainerFormModal').then(mod => ({ default: mod.ContainerFormModal })), {
@@ -33,14 +33,13 @@ export default function ContainersPage() {
   const deleteMutation = useDeleteContainer()
   const { showError } = useToast()
 
-  // Verificar permisos
-  const permissionsCreate = useHasPermissions(['containers.create'])
-  const permissionsEdit = useHasPermissions(['containers.edit'])
-  const permissionsDelete = useHasPermissions(['containers.delete'])
+  // Verificar permisos - una sola llamada para evitar re-renders progresivos
+  const { data: userPermisos = [], isLoading: isLoadingPermissions } = usePermisosUsuario()
+  const userCodigos = useMemo(() => userPermisos.map(p => p.codigo), [userPermisos])
 
-  const canCreate = permissionsCreate.hasAny
-  const canEdit = permissionsEdit.hasAny
-  const canDelete = permissionsDelete.hasAny
+  const canCreate = userCodigos.includes('containers.create')
+  const canEdit = userCodigos.includes('containers.edit')
+  const canDelete = userCodigos.includes('containers.delete')
 
   // Calcular estadísticas (memoizado para evitar recálculos innecesarios)
   const { totalContainers, totalProducts, totalValue } = useMemo(() => {
