@@ -34,14 +34,13 @@ export default function ContainersPage() {
   const { showError } = useToast()
 
   // Verificar permisos
-  const { hasAny } = useHasPermissions([
-    'containers.create',
-    'containers.edit',
-    'containers.delete',
-  ])
-  const canCreate = hasAny ? useHasPermissions(['containers.create']).hasAny : false
-  const canEdit = hasAny ? useHasPermissions(['containers.edit']).hasAny : false
-  const canDelete = hasAny ? useHasPermissions(['containers.delete']).hasAny : false
+  const permissionsCreate = useHasPermissions(['containers.create'])
+  const permissionsEdit = useHasPermissions(['containers.edit'])
+  const permissionsDelete = useHasPermissions(['containers.delete'])
+
+  const canCreate = permissionsCreate.hasAny
+  const canEdit = permissionsEdit.hasAny
+  const canDelete = permissionsDelete.hasAny
 
   // Calcular estadísticas (memoizado para evitar recálculos innecesarios)
   const { totalContainers, totalProducts, totalValue } = useMemo(() => {
