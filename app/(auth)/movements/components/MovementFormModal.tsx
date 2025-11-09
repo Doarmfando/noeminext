@@ -120,10 +120,22 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
     (paginaLotes + 1) * LOTES_POR_PAGINA
   )
 
-  // Resetear página de lotes cuando cambie producto o contenedor
+  // Resetear TODO cuando cambie producto o contenedor
   useEffect(() => {
+    // NO resetear en modo edición
+    if (isEditMode) return
+
     setPaginaLotes(0)
-  }, [formData.producto_id, formData.contenedor_id])
+    setLoteSeleccionado('') // Quitar selección de lote
+    setEmpaquetadosASacar(0)
+    setEmpaquetadosAIngresar(0)
+    setNumeroEmpaquetados('')
+    setFechaVencimiento('')
+    setFormData(prev => ({
+      ...prev,
+      cantidad: 0,
+    }))
+  }, [formData.producto_id, formData.contenedor_id, isEditMode])
 
   // Auto-rellenar precio estimado cuando selecciona producto (antes de seleccionar lote)
   useEffect(() => {
@@ -155,7 +167,7 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
     }
   }, [formData.producto_id, productContainers, isEditMode])
 
-  // Auto-rellenar datos del lote seleccionado
+  // Auto-rellenar datos del lote seleccionado Y limpiar campos al cambiar/quitar lote
   useEffect(() => {
     // NO auto-rellenar en modo edición
     if (isEditMode) return
@@ -172,16 +184,34 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
       setFormData(prev => ({
         ...prev,
         precio_real: precioLote,
+        cantidad: 0, // Resetear cantidad al cambiar de lote
       }))
 
       // Auto-rellenar fecha de vencimiento
       setFechaVencimiento(fechaLote)
+
+      // Limpiar campos de empaquetados/cajas
+      setEmpaquetadosASacar(0)
+      setEmpaquetadosAIngresar(0)
+      setNumeroEmpaquetados('')
     } else {
-      // Limpiar cuando no hay lote seleccionado
+      // Limpiar TODO cuando no hay lote seleccionado
       setPrecioOriginalLote(null)
       setFechaOriginalLote('')
+      setFechaVencimiento('')
+
+      // Resetear cantidad y empaquetados
+      setFormData(prev => ({
+        ...prev,
+        cantidad: 0,
+        precio_real: selectedProduct?.precio_estimado || 0, // Volver al precio estimado
+      }))
+
+      setEmpaquetadosASacar(0)
+      setEmpaquetadosAIngresar(0)
+      setNumeroEmpaquetados('')
     }
-  }, [loteActual, isEditMode])
+  }, [loteActual, isEditMode, selectedProduct?.precio_estimado])
 
   // Detectar si se modificaron datos del lote (con comparación tolerante para decimales)
   const precioModificado = loteActual && precioOriginalLote !== null &&
@@ -416,9 +446,14 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
               <button
                 type="button"
                 disabled={isEditMode}
-                onClick={() =>
-                  setFormData({ ...formData, tipo_movimiento: 'entrada', motivo_movimiento_id: '' })
-                }
+                onClick={() => {
+                  setFormData({ ...formData, tipo_movimiento: 'entrada', motivo_movimiento_id: '', cantidad: 0 })
+                  // Limpiar campos al cambiar tipo de movimiento
+                  setLoteSeleccionado('')
+                  setEmpaquetadosASacar(0)
+                  setEmpaquetadosAIngresar(0)
+                  setNumeroEmpaquetados('')
+                }}
                 className={`p-4 rounded-lg border-2 transition-all ${
                   formData.tipo_movimiento === 'entrada'
                     ? 'border-green-500 bg-green-50 text-green-700'
@@ -431,9 +466,14 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
               <button
                 type="button"
                 disabled={isEditMode}
-                onClick={() =>
-                  setFormData({ ...formData, tipo_movimiento: 'salida', motivo_movimiento_id: '' })
-                }
+                onClick={() => {
+                  setFormData({ ...formData, tipo_movimiento: 'salida', motivo_movimiento_id: '', cantidad: 0 })
+                  // Limpiar campos al cambiar tipo de movimiento
+                  setLoteSeleccionado('')
+                  setEmpaquetadosASacar(0)
+                  setEmpaquetadosAIngresar(0)
+                  setNumeroEmpaquetados('')
+                }}
                 className={`p-4 rounded-lg border-2 transition-all ${
                   formData.tipo_movimiento === 'salida'
                     ? 'border-red-500 bg-red-50 text-red-700'

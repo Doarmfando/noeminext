@@ -27,6 +27,17 @@ export default function BebidasAdminPage() {
         return
       }
 
+      // Si ya tiene un valor configurado y lo está cambiando, mostrar advertencia
+      if (producto.unidades_por_caja && value !== producto.unidades_por_caja) {
+        const confirmar = window.confirm(
+          `⚠️ ADVERTENCIA: Estás cambiando las unidades por caja de ${producto.unidades_por_caja} a ${value}.\n\n` +
+          `• Los productos YA agregados a contenedores NO se verán afectados.\n` +
+          `• Solo las NUEVAS asignaciones usarán el nuevo valor (${value} unidades/caja).\n\n` +
+          `¿Estás seguro de continuar?`
+        )
+        if (!confirmar) return
+      }
+
       await updateMutation.mutateAsync({
         id: producto.id,
         unidades_por_caja: value,
@@ -219,13 +230,26 @@ export default function BebidasAdminPage() {
       </div>
 
       {/* Footer Info */}
-      <div className="mt-6 text-sm text-gray-600 bg-gray-50 rounded-lg p-4">
-        <p className="font-semibold mb-2">Consejos:</p>
-        <ul className="space-y-1 ml-4">
-          <li>• Configura las unidades por caja solo para productos que vengan en cajas (cervezas, gaseosas, etc.)</li>
-          <li>• Si un producto viene en diferentes presentaciones, crea productos separados</li>
-          <li>• Puedes dejar productos sin configurar si no los vendes por cajas</li>
-        </ul>
+      <div className="mt-6 space-y-4">
+        {/* Advertencia sobre edición */}
+        <div className="text-sm bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <p className="font-semibold text-orange-900 mb-2">⚠️ Importante al editar:</p>
+          <ul className="space-y-1 ml-4 text-orange-800">
+            <li>• Cambiar las unidades por caja NO afecta productos ya agregados a contenedores</li>
+            <li>• Solo las NUEVAS asignaciones del producto usarán el nuevo valor</li>
+            <li>• Esto puede crear inconsistencias si agregas más del mismo producto después de cambiar la configuración</li>
+          </ul>
+        </div>
+
+        {/* Consejos generales */}
+        <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-4">
+          <p className="font-semibold mb-2">Consejos:</p>
+          <ul className="space-y-1 ml-4">
+            <li>• Configura las unidades por caja solo para productos que vengan en cajas (cervezas, gaseosas, etc.)</li>
+            <li>• Si un producto viene en diferentes presentaciones, crea productos separados</li>
+            <li>• Puedes dejar productos sin configurar si no los vendes por cajas</li>
+          </ul>
+        </div>
       </div>
     </div>
   )
