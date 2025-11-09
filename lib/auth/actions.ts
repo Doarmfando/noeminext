@@ -52,6 +52,34 @@ export async function login(usernameOrEmail: string, password: string) {
       }
     }
 
+    // 3. Registrar log de inicio de sesión
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (user?.email) {
+        // Buscar el usuario en la tabla usuarios
+        const { data: usuarioData } = await supabase
+          .from('usuarios')
+          .select('id, nombre_usuario')
+          .eq('email', user.email)
+          .single()
+
+        if (usuarioData) {
+          // Registrar evento de login
+          await supabase.from('log_eventos').insert({
+            usuario_id: usuarioData.id,
+            accion: 'LOGIN',
+            tabla_afectada: 'auth',
+            descripcion: `Usuario ${usuarioData.nombre_usuario} inició sesión`,
+            fecha_evento: new Date().toISOString(),
+          })
+        }
+      }
+    } catch (logError) {
+      // Si falla el log, no interrumpir el login
+      console.error('Error al registrar log de inicio de sesión:', logError)
+    }
+
     revalidatePath('/', 'layout')
 
     // Retornar éxito en lugar de hacer redirect aquí

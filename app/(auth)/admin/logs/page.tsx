@@ -41,6 +41,8 @@ export default function LogsPage() {
       if (error) throw error
       return data as Log[]
     },
+    refetchInterval: 30000, // Actualizar cada 30 segundos
+    refetchIntervalInBackground: true, // Continuar actualizando aunque la pestaña esté en segundo plano
   })
 
   // Obtener usuarios únicos
@@ -293,7 +295,9 @@ export default function LogsPage() {
                             ? 'bg-blue-100 text-blue-800'
                             : log.accion === 'DELETE'
                               ? 'bg-red-100 text-red-800'
-                              : 'bg-gray-100 text-gray-800'
+                              : log.accion === 'LOGIN'
+                                ? 'bg-purple-100 text-purple-800'
+                                : 'bg-gray-100 text-gray-800'
                       }`}
                     >
                       {log.accion}

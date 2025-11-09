@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client'
 
-export type LogAction = 'INSERT' | 'UPDATE' | 'DELETE' | 'SELECT'
+export type LogAction = 'INSERT' | 'UPDATE' | 'DELETE' | 'SELECT' | 'LOGIN'
 
 export interface LogEventData {
   accion: LogAction
@@ -102,5 +102,18 @@ export async function logDelete(
     tabla_afectada: tabla,
     registro_afectado_id: registroId,
     descripcion: descripcion || `Registro eliminado en ${tabla}`,
+  })
+}
+
+/**
+ * Helper para registrar inicio de sesión
+ */
+export async function logLogin(
+  descripcion?: string
+): Promise<void> {
+  await logEvent({
+    accion: 'LOGIN',
+    tabla_afectada: 'auth',
+    descripcion: descripcion || 'Usuario inició sesión',
   })
 }

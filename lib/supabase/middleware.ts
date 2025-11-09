@@ -61,10 +61,10 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Redirigir a dashboard si el usuario ya está autenticado y va a login
+  // Redirigir a movimientos si el usuario ya está autenticado y va a login
   if (user && request.nextUrl.pathname.startsWith("/login")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = "/movimientos";
     return NextResponse.redirect(url);
   }
 

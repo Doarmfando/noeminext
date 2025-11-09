@@ -35,8 +35,8 @@ export default function LoginPage() {
         setError(result.error)
         setLoading(false)
       } else if (result?.success) {
-        // Login exitoso, redirigir al dashboard
-        router.push('/dashboard')
+        // Login exitoso, redirigir a movimientos
+        router.push('/movimientos')
         router.refresh()
       }
     } catch (err) {
