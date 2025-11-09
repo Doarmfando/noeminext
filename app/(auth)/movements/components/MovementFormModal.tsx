@@ -1498,46 +1498,76 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
             </>
           )}
 
-          {/* Precio Real */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Precio Real (S/.)
-            </label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={formData.precio_real || ''}
-              onChange={e =>
-                setFormData({ ...formData, precio_real: parseFloat(e.target.value) || 0 })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="0.00"
-            />
-            {!isEditMode && loteActual && !precioModificado && (
-              <p className="text-xs text-green-600 mt-1">
-                Precio del lote aplicado automáticamente
-              </p>
-            )}
-            {!isEditMode && !loteActual && selectedProduct?.precio_estimado && formData.precio_real === selectedProduct.precio_estimado && (
-              <p className="text-xs text-blue-600 mt-1">
-                Precio estimado aplicado automáticamente
-              </p>
-            )}
-            {isEditMode && (
-              <p className="text-xs text-gray-600 mt-1">
-                Precio registrado en el movimiento original
-              </p>
-            )}
-            {precioModificado && formData.tipo_movimiento === 'entrada' && (
-              <p className="text-xs text-orange-600 mt-1 font-medium">
-                Modificaste el precio - Se creará un NUEVO LOTE
-              </p>
-            )}
-            {precioModificado && formData.tipo_movimiento === 'salida' && (
-              <p className="text-xs text-blue-600 mt-1 font-medium">
-                Se agregará nota del cambio de precio en observaciones
-              </p>
+          {/* Precio Real y Precio Total */}
+          <div className="space-y-3">
+            {/* Precio Real por Unidad */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Precio Real por {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unidad'} (S/.)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.precio_real || ''}
+                onChange={e =>
+                  setFormData({ ...formData, precio_real: parseFloat(e.target.value) || 0 })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="0.00"
+              />
+              {!isEditMode && loteActual && !precioModificado && (
+                <p className="text-xs text-green-600 mt-1">
+                  Precio del lote aplicado automáticamente
+                </p>
+              )}
+              {!isEditMode && !loteActual && selectedProduct?.precio_estimado && formData.precio_real === selectedProduct.precio_estimado && (
+                <p className="text-xs text-blue-600 mt-1">
+                  Precio estimado aplicado automáticamente
+                </p>
+              )}
+              {isEditMode && (
+                <p className="text-xs text-gray-600 mt-1">
+                  Precio registrado en el movimiento original
+                </p>
+              )}
+              {precioModificado && formData.tipo_movimiento === 'entrada' && (
+                <p className="text-xs text-orange-600 mt-1 font-medium">
+                  Modificaste el precio - Se creará un NUEVO LOTE
+                </p>
+              )}
+              {precioModificado && formData.tipo_movimiento === 'salida' && (
+                <p className="text-xs text-blue-600 mt-1 font-medium">
+                  Se agregará nota del cambio de precio en observaciones
+                </p>
+              )}
+            </div>
+
+            {/* Precio Total */}
+            {(formData.cantidad ?? 0) > 0 && (formData.precio_real ?? 0) > 0 && (
+              <div className={`p-4 rounded-lg border-2 ${
+                formData.tipo_movimiento === 'entrada'
+                  ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300'
+                  : 'bg-gradient-to-r from-red-50 to-rose-50 border-red-300'
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <p className={`text-xs font-medium uppercase ${
+                    formData.tipo_movimiento === 'entrada' ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    💰 Precio Total del Movimiento
+                  </p>
+                </div>
+                <p className={`text-3xl font-bold ${
+                  formData.tipo_movimiento === 'entrada' ? 'text-green-900' : 'text-red-900'
+                }`}>
+                  S/. {((formData.cantidad ?? 0) * (formData.precio_real ?? 0)).toFixed(2)}
+                </p>
+                <p className={`text-sm mt-2 ${
+                  formData.tipo_movimiento === 'entrada' ? 'text-green-700' : 'text-red-700'
+                }`}>
+                  {(formData.cantidad ?? 0).toFixed(2)} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'} × S/. {(formData.precio_real ?? 0).toFixed(2)}
+                </p>
+              </div>
             )}
           </div>
 
