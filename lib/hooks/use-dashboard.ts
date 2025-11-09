@@ -501,8 +501,8 @@ async function getContainerStats(): Promise<ContainerStats[]> {
   return contenedores.map(contenedor => {
     const detallesContenedor = detalles.filter(d => d.contenedor_id === contenedor.id)
 
-    // Agrupar por producto_id para contar productos únicos
-    const productosUnicos = new Set(detallesContenedor.map(d => d.producto_id))
+    // Contar LOTES de productos (cada registro en detalle_contenedor es un lote)
+    const totalLotes = detallesContenedor.length
 
     // Calcular CAJAS (solo para bebidas) y EMPAQUETADOS (para productos normales)
     let totalCajas = 0
@@ -532,7 +532,7 @@ async function getContainerStats(): Promise<ContainerStats[]> {
       id: contenedor.id,
       nombre: contenedor.nombre,
       tipo: (contenedor.tipo_contenedor as any)?.nombre || 'Sin tipo',
-      totalProductos: productosUnicos.size,
+      totalProductos: totalLotes, // En realidad son lotes, pero mantenemos el nombre de la propiedad
       totalCajas,
       totalEmpaquetados,
       valorTotal,
@@ -552,5 +552,120 @@ export function useContainerStats() {
   return useQuery({
     queryKey: ['container-stats'],
     queryFn: getContainerStats,
+  })
+}
+
+// Interfaz para detalles de bebidas (por LOTE, no por producto)
+export interface BebidaDetalle {
+  loteId: string // ID del detalle_contenedor
+  productoId: string
+  nombre: string
+  nombreContenedor: string
+  unidadesDisponibles: number
+  cajasDisponibles: number
+  valorTotal: number
+}
+
+export interface BebidasDetalles {
+  lotes: BebidaDetalle[]
+}
+
+// Obtener detalles de bebidas con top vendidos y distribución por contenedores
+async function getBebidasDetalles(): Promise<BebidasDetalles> {
+  const supabase = createClient()
+
+  // Obtener categoría bebidas
+  const { data: categoria } = await supabase
+    .from('categorias')
+    .select('id')
+    .ilike('nombre', '%bebida%')
+    .eq('visible', true)
+    .limit(1)
+    .maybeSingle()
+
+  if (!categoria) {
+    return {
+      topVendidos: [],
+      productosDisponibles: [],
+    }
+  }
+
+  // Obtener productos de bebidas con unidades_por_caja configuradas
+  const { data: productosBebidas } = await supabase
+    .from('productos')
+    .select('id, nombre, unidades_por_caja, precio_estimado')
+    .eq('categoria_id', categoria.id)
+    .eq('visible', true)
+    .not('unidades_por_caja', 'is', null)
+
+  if (!productosBebidas || productosBebidas.length === 0) {
+    return {
+      topVendidos: [],
+      productosDisponibles: [],
+    }
+  }
+
+  const productIds = productosBebidas.map(p => p.id)
+
+  // Obtener detalles de contenedor para estos productos (CADA registro es un LOTE)
+  const { data: detalles } = await supabase
+    .from('detalle_contenedor')
+    .select(`
+      id,
+      producto_id,
+      cantidad,
+      precio_real_unidad,
+      contenedor_id,
+      contenedores!inner(nombre, visible),
+      productos!inner(nombre, unidades_por_caja, precio_estimado)
+    `)
+    .in('producto_id', productIds)
+    .eq('visible', true)
+    .eq('contenedores.visible', true)
+
+  if (!detalles || detalles.length === 0) {
+    return {
+      lotes: [],
+    }
+  }
+
+  // Procesar datos - CADA detalle_contenedor es un LOTE separado
+  const lotes: BebidaDetalle[] = detalles.map(lote => {
+    const producto = lote.productos as any
+    const contenedor = lote.contenedores as any
+
+    // Calcular cajas para este lote
+    const unidadesPorCaja = producto.unidades_por_caja || 1
+    const cajasDisponibles = Math.floor((lote.cantidad || 0) / unidadesPorCaja)
+
+    // Calcular valor total del lote
+    const precio = lote.precio_real_unidad || producto.precio_estimado || 0
+    const valorTotal = (lote.cantidad || 0) * precio
+
+    return {
+      loteId: lote.id,
+      productoId: lote.producto_id,
+      nombre: producto.nombre,
+      nombreContenedor: contenedor?.nombre || 'Sin contenedor',
+      unidadesDisponibles: lote.cantidad || 0,
+      cajasDisponibles,
+      valorTotal,
+    }
+  })
+
+  // Ordenar por unidades disponibles descendente
+  const lotesOrdenados = [...lotes]
+    .filter(b => b.unidadesDisponibles > 0)
+    .sort((a, b) => b.unidadesDisponibles - a.unidadesDisponibles)
+
+  return {
+    lotes: lotesOrdenados,
+  }
+}
+
+export function useBebidasDetalles() {
+  return useQuery({
+    queryKey: ['bebidas-detalles'],
+    queryFn: getBebidasDetalles,
   })
 }

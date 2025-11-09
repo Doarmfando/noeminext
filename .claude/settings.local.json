@@ -21,7 +21,9 @@
       "Bash(powershell -Command:*)",
       "Bash(if exist .next echo \".next existe aun\")",
       "Bash(tree:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(supabase --version:*)",
+      "Bash(supabase status:*)"
     ],
     "deny": [],
     "ask": []

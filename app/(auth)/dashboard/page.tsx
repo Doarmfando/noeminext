@@ -21,10 +21,12 @@ import {
   useCategoryStats,
   useBebidasStats,
   useContainerStats,
+  useBebidasDetalles,
   type Product,
   type CategoryData,
   type BebidasStats,
   type ContainerStats,
+  type BebidasDetalles,
 } from '@/lib/hooks/use-dashboard'
 
 type DashboardTab = 'overview' | 'bebidas' | 'contenedores' | 'categories' | 'alerts'
@@ -55,7 +57,6 @@ export default function DashboardPage() {
       id: 'bebidas' as DashboardTab,
       name: 'Bebidas',
       icon: GlassWater,
-      badge: bebidasStats?.totalProductos || undefined,
     },
     {
       id: 'contenedores' as DashboardTab,
@@ -662,17 +663,7 @@ function BebidasCard({ stats, onViewMore }: { stats: BebidasStats; onViewMore?: 
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-4 rounded-xl border border-amber-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-amber-700 font-semibold text-sm mb-1">Productos</p>
-              <p className="text-3xl font-bold text-amber-600">{stats.totalProductos}</p>
-            </div>
-            <GlassWater className="w-8 h-8 text-amber-500" />
-          </div>
-        </div>
-
+      <div className="grid grid-cols-3 gap-4">
         <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border border-blue-200">
           <div className="flex items-center justify-between">
             <div>
@@ -706,12 +697,6 @@ function BebidasCard({ stats, onViewMore }: { stats: BebidasStats; onViewMore?: 
             <DollarSign className="w-8 h-8 text-green-500" />
           </div>
         </div>
-      </div>
-
-      <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
-        <p>
-          <strong>Promedio por caja:</strong> S/. {stats.totalCajas > 0 ? (stats.valorTotal / stats.totalCajas).toFixed(2) : '0.00'}
-        </p>
       </div>
     </div>
   )
@@ -766,8 +751,9 @@ function ContainersSummaryCard({ containerStats, onViewMore }: { containerStats:
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
         <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-3 rounded-xl border border-indigo-200 text-center">
-          <p className="text-indigo-700 font-semibold text-xs mb-1">Productos</p>
+          <p className="text-indigo-700 font-semibold text-xs mb-1">Lotes</p>
           <p className="text-2xl font-bold text-indigo-600">{totalProductos}</p>
+          <p className="text-xs text-indigo-600">de productos</p>
         </div>
 
         <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-3 rounded-xl border border-amber-200 text-center">
@@ -821,7 +807,7 @@ function ContainersSummaryCard({ containerStats, onViewMore }: { containerStats:
                 S/. {container.valorTotal.toLocaleString('es-PE', { maximumFractionDigits: 0 })}
               </p>
               <div className="flex items-center justify-end gap-2 text-xs text-gray-600">
-                <span>{container.totalProductos} prod.</span>
+                <span>{container.totalProductos} lotes</span>
                 {container.totalCajas > 0 && (
                   <span className="flex items-center gap-1">
                     <GlassWater className="w-3 h-3" />
@@ -844,7 +830,9 @@ function ContainersSummaryCard({ containerStats, onViewMore }: { containerStats:
 }
 
 function BebidasFullView({ stats }: { stats: BebidasStats | undefined }) {
-  if (!stats || stats.totalProductos === 0) {
+  const { data: detalles } = useBebidasDetalles()
+
+  if (!stats || stats.totalCajas === 0) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
         <div className="mx-auto w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center mb-4">
@@ -874,11 +862,7 @@ function BebidasFullView({ stats }: { stats: BebidasStats | undefined }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-            <p className="text-amber-100 text-sm mb-1">Productos</p>
-            <p className="text-3xl font-bold">{stats.totalProductos}</p>
-          </div>
+        <div className="grid grid-cols-3 gap-4">
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
             <p className="text-amber-100 text-sm mb-1 flex items-center gap-1">
               <Box className="w-3 h-3" /> Cajas
@@ -896,56 +880,52 @@ function BebidasFullView({ stats }: { stats: BebidasStats | undefined }) {
         </div>
       </div>
 
-      {/* Métricas Adicionales */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Promedio por Caja</h3>
-            <DollarSign className="w-5 h-5 text-green-600" />
-          </div>
-          <p className="text-3xl font-bold text-green-600">
-            S/. {stats.totalCajas > 0 ? (stats.valorTotal / stats.totalCajas).toFixed(2) : '0.00'}
-          </p>
-          <p className="text-sm text-gray-600 mt-2">Valor promedio por caja</p>
-        </div>
+      {/* Lotes de Bebidas Disponibles */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <Package className="w-5 h-5 text-blue-600" />
+          Lotes de Bebidas Disponibles
+        </h3>
+        {detalles && detalles.lotes.length > 0 ? (
+          <div className="space-y-3">
+            {detalles.lotes.map(lote => (
+              <div key={lote.loteId} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="font-semibold text-gray-900 text-lg">{lote.nombre}</h4>
+                      <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                        Lote
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-sm text-blue-600">
+                      <Archive className="w-4 h-4" />
+                      <span className="font-medium">{lote.nombreContenedor}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-gray-900">{lote.unidadesDisponibles} unidades</p>
+                    <p className="text-sm text-gray-600">{lote.cajasDisponibles} cajas</p>
+                  </div>
+                </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Promedio por Unidad</h3>
-            <Package className="w-5 h-5 text-blue-600" />
+                <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                  <p className="text-sm text-green-700">Valor del Lote</p>
+                  <p className="text-xl font-bold text-green-600">S/. {lote.valorTotal.toFixed(2)}</p>
+                </div>
+              </div>
+            ))}
           </div>
-          <p className="text-3xl font-bold text-blue-600">
-            S/. {stats.totalUnidades > 0 ? (stats.valorTotal / stats.totalUnidades).toFixed(2) : '0.00'}
-          </p>
-          <p className="text-sm text-gray-600 mt-2">Valor promedio por unidad</p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Unidades por Caja</h3>
-            <Box className="w-5 h-5 text-amber-600" />
+        ) : (
+          <div className="text-center py-8">
+            <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-3">
+              <Package className="w-8 h-8 text-blue-400" />
+            </div>
+            <p className="text-gray-600 text-sm">
+              No hay bebidas disponibles en el inventario.
+            </p>
           </div>
-          <p className="text-3xl font-bold text-amber-600">
-            {stats.totalCajas > 0 ? Math.round(stats.totalUnidades / stats.totalCajas) : 0}
-          </p>
-          <p className="text-sm text-gray-600 mt-2">Promedio de unidades</p>
-        </div>
-      </div>
-
-      {/* Información Adicional */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <div className="flex items-start gap-3">
-          <GlassWater className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-          <div className="text-sm text-blue-900">
-            <p className="font-semibold mb-2">Sobre las Bebidas</p>
-            <ul className="space-y-1 ml-4 list-disc">
-              <li>Las <strong>cajas</strong> se calculan basándose en las unidades por caja configuradas para cada bebida</li>
-              <li>Solo los productos de la categoría "Bebidas" con <strong>unidades_por_caja</strong> configuradas aparecen aquí</li>
-              <li>Puedes configurar las unidades por caja en <strong>Admin → Bebidas</strong></li>
-              <li>Los valores se actualizan automáticamente al agregar o eliminar bebidas</li>
-            </ul>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   )
@@ -992,7 +972,7 @@ function ContenedoresFullView({ containerStats }: { containerStats: ContainerSta
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-            <p className="text-indigo-100 text-sm mb-1">Productos</p>
+            <p className="text-indigo-100 text-sm mb-1">Lotes de Productos</p>
             <p className="text-3xl font-bold">{totalProductos}</p>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
@@ -1050,7 +1030,7 @@ function ContenedoresFullView({ containerStats }: { containerStats: ContainerSta
                     {/* Métricas */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
                       <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-100">
-                        <p className="text-xs text-indigo-700 mb-1">Productos</p>
+                        <p className="text-xs text-indigo-700 mb-1">Lotes de Productos</p>
                         <p className="text-xl font-bold text-indigo-600">{container.totalProductos}</p>
                       </div>
 
@@ -1096,7 +1076,7 @@ function ContenedoresFullView({ containerStats }: { containerStats: ContainerSta
             <ul className="space-y-1 ml-4 list-disc">
               <li><strong>Cajas 🍺:</strong> Solo para bebidas con unidades_por_caja configuradas</li>
               <li><strong>Empaquetados 📦:</strong> Para productos normales (carnes, verduras, etc.)</li>
-              <li><strong>Productos:</strong> Cantidad de productos únicos/diferentes en cada contenedor</li>
+              <li><strong>Lotes de Productos:</strong> Cantidad de lotes/registros en cada contenedor (un mismo producto puede tener múltiples lotes con diferentes fechas de vencimiento o precios)</li>
               <li>Los valores se actualizan automáticamente al agregar/eliminar productos</li>
             </ul>
           </div>

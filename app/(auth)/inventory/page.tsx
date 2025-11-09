@@ -12,6 +12,7 @@ import {
   type InventoryFilters,
 } from '@/lib/hooks/use-inventory'
 import { Pagination } from '@/components/ui/pagination'
+import { useHasPermissions } from '@/lib/hooks/use-permissions'
 
 // Lazy load modales - solo se cargan cuando se abren
 const ProductFormModal = dynamic(() => import('./components/ProductFormModal').then(mod => ({ default: mod.ProductFormModal })), {
@@ -35,6 +36,15 @@ export default function InventoryPage() {
   const { data: inventory = [], isLoading } = useInventory(filters)
   const { data: categories = [] } = useCategories()
   const deleteMutation = useDeleteProduct()
+
+  // Verificar permisos
+  const permissionsCreate = useHasPermissions(['inventory.create'])
+  const permissionsEdit = useHasPermissions(['inventory.edit'])
+  const permissionsDelete = useHasPermissions(['inventory.delete'])
+
+  const canCreate = permissionsCreate.hasAny
+  const canEdit = permissionsEdit.hasAny
+  const canDelete = permissionsDelete.hasAny
 
   const handleDelete = async (product: any) => {
     if (!confirm(`¿Estás seguro de eliminar el producto "${product.productos.nombre}"?`)) {
@@ -186,13 +196,15 @@ export default function InventoryPage() {
 
           {/* New Product Button */}
           <div className="flex items-end">
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              <Plus className="w-5 h-5" />
-              Nuevo Producto
-            </button>
+            {canCreate && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                <Plus className="w-5 h-5" />
+                Nuevo Producto
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -317,20 +329,24 @@ export default function InventoryPage() {
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => setEditingProduct(item)}
-                          className="p-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
-                          title="Editar producto"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item)}
-                          className="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
-                          title="Eliminar producto"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {canEdit && (
+                          <button
+                            onClick={() => setEditingProduct(item)}
+                            className="p-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+                            title="Editar producto"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDelete(item)}
+                            className="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
+                            title="Eliminar producto"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
