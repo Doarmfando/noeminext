@@ -30,9 +30,16 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
 
   const productos = container.productos || []
 
-  // Verificar permisos
-  const { hasAny } = useHasPermissions(['containers.manage_products'])
-  const canManageProducts = hasAny
+  // Verificar permisos específicos para cada acción
+  const permissionsAddProduct = useHasPermissions(['containers.add_product'])
+  const permissionsEditProduct = useHasPermissions(['containers.edit_product'])
+  const permissionsRemoveProduct = useHasPermissions(['containers.remove_product'])
+  const permissionsTransfer = useHasPermissions(['containers.transfer'])
+
+  const canAddProduct = permissionsAddProduct.hasAny
+  const canEditProduct = permissionsEditProduct.hasAny
+  const canRemoveProduct = permissionsRemoveProduct.hasAny
+  const canTransferProduct = permissionsTransfer.hasAny
 
   const handleTransfer = (product: any) => {
     setSelectedProduct(product)
@@ -183,7 +190,7 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Productos en este Contenedor</h3>
-            {canManageProducts && (
+            {canAddProduct && (
               <button
                 onClick={() => setShowAddProduct(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
@@ -342,44 +349,48 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-center gap-1">
-                            {canManageProducts && (
-                              <>
-                                <button
-                                  onClick={(e) => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                    handleTransfer(item)
-                                  }}
-                                  className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
-                                  title="Transferir a otro contenedor"
-                                >
-                                  <ArrowRightLeft className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                    handleEdit(item)
-                                  }}
-                                  className="p-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded transition-colors"
-                                  title="Editar"
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                    handleRemove(item)
-                                  }}
-                                  className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
-                                  title="Retirar del contenedor"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </>
+                            {canTransferProduct && (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  handleTransfer(item)
+                                }}
+                                className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                                title="Transferir a otro contenedor"
+                              >
+                                <ArrowRightLeft className="w-4 h-4" />
+                              </button>
                             )}
-                            {!canManageProducts && <span className="text-xs text-gray-400">-</span>}
+                            {canEditProduct && (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  handleEdit(item)
+                                }}
+                                className="p-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded transition-colors"
+                                title="Editar"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                            )}
+                            {canRemoveProduct && (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  handleRemove(item)
+                                }}
+                                className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
+                                title="Retirar del contenedor"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                            {!canTransferProduct && !canEditProduct && !canRemoveProduct && (
+                              <span className="text-xs text-gray-400">-</span>
+                            )}
                           </div>
                         </td>
                       </tr>
