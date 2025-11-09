@@ -264,7 +264,7 @@ function AddProductForm({
         unidades_por_caja: Number(configurandoUnidadesPorCaja),
       })
 
-      showSuccess(`✅ Configurado: ${product.nombre} - ${configurandoUnidadesPorCaja} unidades por caja`)
+      showSuccess(`Configurado: ${product.nombre} - ${configurandoUnidadesPorCaja} unidades por caja`)
       setConfigurandoUnidadesPorCaja('')
       // El query se invalida automáticamente, el componente se re-renderiza con la nueva data
     } catch (error: any) {
@@ -332,7 +332,6 @@ function AddProductForm({
       {esCategoriaBebidaSinConfigurar && (
         <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <span className="text-2xl">🍺</span>
             <div className="flex-1">
               <p className="text-sm font-semibold text-blue-900 mb-1">
                 Configura las Unidades por Caja
@@ -368,7 +367,7 @@ function AddProductForm({
               </div>
 
               <p className="text-xs text-blue-600 mt-2">
-                💡 Ejemplo: Si cada caja de {product.nombre} contiene 24 botellas, ingresa "24"
+                Ejemplo: Si cada caja de {product.nombre} contiene 24 botellas, ingresa "24"
               </p>
             </div>
           </div>
@@ -503,9 +502,8 @@ function AddProductForm({
           <div className={`p-4 bg-gradient-to-r ${esBebida ? 'from-blue-50 to-cyan-50 border-2 border-blue-300' : 'from-green-50 to-emerald-50 border-2 border-green-200'} rounded-lg`}>
             <div className="flex items-center justify-between mb-2">
               <p className={`text-xs font-medium uppercase ${esBebida ? 'text-blue-600' : 'text-green-600'}`}>
-                {esBebida ? '🍺 Bebidas' : 'Resultado'}
+                {esBebida ? 'Bebidas' : 'Resultado'}
               </p>
-              <span className="text-lg">{esBebida ? '📦' : '📦'}</span>
             </div>
             <p className={`text-sm font-medium ${esBebida ? 'text-blue-900' : 'text-green-900'}`}>
               {esBebida ? (

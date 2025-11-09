@@ -30,7 +30,7 @@ export default function BebidasAdminPage() {
       // Si ya tiene un valor configurado y lo está cambiando, mostrar advertencia
       if (producto.unidades_por_caja && value !== producto.unidades_por_caja) {
         const confirmar = window.confirm(
-          `⚠️ ADVERTENCIA: Estás cambiando las unidades por caja de ${producto.unidades_por_caja} a ${value}.\n\n` +
+          `ADVERTENCIA: Estás cambiando las unidades por caja de ${producto.unidades_por_caja} a ${value}.\n\n` +
           `• Los productos YA agregados a contenedores NO se verán afectados.\n` +
           `• Solo las NUEVAS asignaciones usarán el nuevo valor (${value} unidades/caja).\n\n` +
           `¿Estás seguro de continuar?`
@@ -233,7 +233,7 @@ export default function BebidasAdminPage() {
       <div className="mt-6 space-y-4">
         {/* Advertencia sobre edición */}
         <div className="text-sm bg-orange-50 border border-orange-200 rounded-lg p-4">
-          <p className="font-semibold text-orange-900 mb-2">⚠️ Importante al editar:</p>
+          <p className="font-semibold text-orange-900 mb-2">Importante al editar:</p>
           <ul className="space-y-1 ml-4 text-orange-800">
             <li>• Cambiar las unidades por caja NO afecta productos ya agregados a contenedores</li>
             <li>• Solo las NUEVAS asignaciones del producto usarán el nuevo valor</li>

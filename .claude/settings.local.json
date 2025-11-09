@@ -23,7 +23,8 @@
       "Bash(tree:*)",
       "Bash(cat:*)",
       "Bash(supabase --version:*)",
-      "Bash(supabase status:*)"
+      "Bash(supabase status:*)",
+      "Bash($null)"
     ],
     "deny": [],
     "ask": []

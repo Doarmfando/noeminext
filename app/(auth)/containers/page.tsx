@@ -265,7 +265,7 @@ export default function ContainersPage() {
 
                   {container.ubicacion && (
                     <div className="text-xs text-gray-600 text-center mb-2">
-                      📍 {container.ubicacion}
+                      {container.ubicacion}
                     </div>
                   )}
                 </div>

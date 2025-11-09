@@ -231,7 +231,7 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
         unidades_por_caja: Number(configurandoUnidadesPorCaja),
       })
 
-      showSuccess(`✅ Configurado: ${selectedProduct.nombre} - ${configurandoUnidadesPorCaja} unidades por caja`)
+      showSuccess(`Configurado: ${selectedProduct.nombre} - ${configurandoUnidadesPorCaja} unidades por caja`)
       setConfigurandoUnidadesPorCaja('')
       // El query se invalida automáticamente, el componente se re-renderiza con la nueva data
     } catch (error: any) {
@@ -368,7 +368,7 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
         actualizar_precio_lote: precioModificado, // Flag para indicar si se debe actualizar el precio del lote
       }
 
-      console.log('🚀 ENVIANDO MOVIMIENTO NUEVO:', {
+      console.log('ENVIANDO MOVIMIENTO NUEVO:', {
         tipo: formData.tipo_movimiento,
         producto: selectedProduct?.nombre,
         cantidad: formData.cantidad,
@@ -1333,7 +1333,6 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
                         <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg">
                           <div className="flex items-center justify-between mb-2">
                             <p className="text-xs font-medium text-green-600 uppercase">Total a ingresar</p>
-                            <span className="text-xl">🍺</span>
                           </div>
                           <p className="text-2xl font-bold text-green-900">
                             {(formData.cantidad || 0).toFixed(0)} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
@@ -1376,7 +1375,6 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
                         <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg">
                           <div className="flex items-center justify-between mb-2">
                             <p className="text-xs font-medium text-green-600 uppercase">Equivalente en cajas</p>
-                            <span className="text-xl">📦</span>
                           </div>
                           <p className="text-2xl font-bold text-green-900">
                             {Math.floor((formData.cantidad || 0) / selectedProduct.unidades_por_caja)} cajas
@@ -1554,7 +1552,7 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
                   <p className={`text-xs font-medium uppercase ${
                     formData.tipo_movimiento === 'entrada' ? 'text-green-600' : 'text-red-600'
                   }`}>
-                    💰 Precio Total del Movimiento
+                    Precio Total del Movimiento
                   </p>
                 </div>
                 <p className={`text-3xl font-bold ${
