@@ -140,17 +140,6 @@ export default function LoginPage() {
                   </a>
                 </div>
               </form>
-
-              {/* Información de credenciales de prueba */}
-              <div className="text-xs text-gray-500 text-center p-3 bg-gray-50 rounded-lg">
-                <strong>Usuarios disponibles:</strong>
-                <br />
-                <span className="text-green-600">fabio</span> o{' '}
-                <span className="text-green-600">fabio@restaurantenoemi.com</span>
-                <br />
-                <span className="text-green-600">brando</span> o{' '}
-                <span className="text-green-600">brandoarmas@hotmail.com</span>
-              </div>
             </div>
           </div>
 
