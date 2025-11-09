@@ -28,6 +28,7 @@ export default function UsersPage() {
   const [showPasswordReset, setShowPasswordReset] = useState(false)
   const [newPassword, setNewPassword] = useState('')
   const [resettingPassword, setResettingPassword] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const visibleUsers = users.filter((u) => u.visible)
 
@@ -67,6 +68,7 @@ export default function UsersPage() {
       setShowForm(false)
       setEditingUser(null)
       setFormData({ nombre_usuario: '', clave: '', nombre: '', email: '', rol_id: '' })
+      setShowPassword(false)
     } catch (error: any) {
       console.error('Error:', error)
       alert(error.message || 'Error al guardar usuario')
@@ -76,6 +78,7 @@ export default function UsersPage() {
   const handleCreate = () => {
     setEditingUser(null)
     setFormData({ nombre_usuario: '', clave: '', nombre: '', email: '', rol_id: '' })
+    setShowPassword(false)
     setShowForm(true)
   }
 
@@ -289,14 +292,31 @@ export default function UsersPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Contraseña *
                   </label>
-                  <input
-                    type="password"
-                    required
-                    value={formData.clave}
-                    onChange={(e) => setFormData({ ...formData, clave: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="********"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={formData.clave}
+                      onChange={(e) => setFormData({ ...formData, clave: e.target.value })}
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="********"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                      title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Mínimo 6 caracteres
+                  </p>
                 </div>
               )}
 
@@ -351,7 +371,10 @@ export default function UsersPage() {
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={() => {
+                    setShowForm(false)
+                    setShowPassword(false)
+                  }}
                   className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
                   Cancelar
