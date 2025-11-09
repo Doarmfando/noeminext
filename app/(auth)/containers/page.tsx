@@ -11,6 +11,7 @@ import {
 } from '@/lib/hooks/use-containers'
 import { useToast } from '@/lib/contexts/toast-context'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { useHasPermissions } from '@/lib/hooks/use-permissions'
 
 // Lazy load modales - solo se cargan cuando se abren
 const ContainerFormModal = dynamic(() => import('./components/ContainerFormModal').then(mod => ({ default: mod.ContainerFormModal })), {
@@ -31,6 +32,16 @@ export default function ContainersPage() {
   const { data: containerTypes = [] } = useContainerTypes()
   const deleteMutation = useDeleteContainer()
   const { showError } = useToast()
+
+  // Verificar permisos
+  const { hasAny } = useHasPermissions([
+    'containers.create',
+    'containers.edit',
+    'containers.delete',
+  ])
+  const canCreate = hasAny ? useHasPermissions(['containers.create']).hasAny : false
+  const canEdit = hasAny ? useHasPermissions(['containers.edit']).hasAny : false
+  const canDelete = hasAny ? useHasPermissions(['containers.delete']).hasAny : false
 
   // Calcular estadísticas (memoizado para evitar recálculos innecesarios)
   const { totalContainers, totalProducts, totalValue } = useMemo(() => {
@@ -82,14 +93,16 @@ export default function ContainersPage() {
               </p>
             </div>
 
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              <span className="hidden sm:inline">Nuevo Contenedor</span>
-              <span className="sm:hidden">Nuevo</span>
-            </button>
+            {canCreate && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                <span className="hidden sm:inline">Nuevo Contenedor</span>
+                <span className="sm:hidden">Nuevo</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -179,15 +192,19 @@ export default function ContainersPage() {
             <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No hay contenedores</h3>
             <p className="text-gray-600 mb-6">
-              Comienza creando tu primer contenedor para organizar tu inventario.
+              {canCreate
+                ? 'Comienza creando tu primer contenedor para organizar tu inventario.'
+                : 'No hay contenedores disponibles en este momento.'}
             </p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              <span>Nuevo Contenedor</span>
-            </button>
+            {canCreate && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Nuevo Contenedor</span>
+              </button>
+            )}
           </div>
         )}
 
@@ -266,21 +283,25 @@ export default function ContainersPage() {
                     </button>
 
                     <div className="flex space-x-1">
-                      <button
-                        onClick={() => setEditingContainer(container)}
-                        className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-md hover:bg-gray-100"
-                        title="Editar contenedor"
-                      >
-                        <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
-                      </button>
+                      {canEdit && (
+                        <button
+                          onClick={() => setEditingContainer(container)}
+                          className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-md hover:bg-gray-100"
+                          title="Editar contenedor"
+                        >
+                          <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </button>
+                      )}
 
-                      <button
-                        onClick={() => handleDelete(container.id, container.nombre)}
-                        className="p-1.5 sm:p-2 text-gray-400 hover:text-red-600 transition-colors rounded-md hover:bg-gray-100"
-                        title="Eliminar contenedor"
-                      >
-                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                      </button>
+                      {canDelete && (
+                        <button
+                          onClick={() => handleDelete(container.id, container.nombre)}
+                          className="p-1.5 sm:p-2 text-gray-400 hover:text-red-600 transition-colors rounded-md hover:bg-gray-100"
+                          title="Eliminar contenedor"
+                        >
+                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

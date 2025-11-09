@@ -7,6 +7,7 @@ import { TransferProductModal } from './TransferProductModal'
 import { EditProductInContainerModal } from './EditProductInContainerModal'
 import { RemoveProductFromContainerModal } from './RemoveProductFromContainerModal'
 import { useContainersWithProducts } from '@/lib/hooks/use-containers'
+import { useHasPermissions } from '@/lib/hooks/use-permissions'
 
 interface ContainerDetailModalProps {
   container: any
@@ -28,6 +29,10 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
   )
 
   const productos = container.productos || []
+
+  // Verificar permisos
+  const { hasAny } = useHasPermissions(['containers.manage_products'])
+  const canManageProducts = hasAny
 
   const handleTransfer = (product: any) => {
     setSelectedProduct(product)
@@ -178,13 +183,15 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Productos en este Contenedor</h3>
-            <button
-              onClick={() => setShowAddProduct(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Agregar Producto
-            </button>
+            {canManageProducts && (
+              <button
+                onClick={() => setShowAddProduct(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Agregar Producto
+              </button>
+            )}
           </div>
 
           {productos.length > 0 ? (
@@ -335,39 +342,44 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-center gap-1">
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                handleTransfer(item)
-                              }}
-                              className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
-                              title="Transferir a otro contenedor"
-                            >
-                              <ArrowRightLeft className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                handleEdit(item)
-                              }}
-                              className="p-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded transition-colors"
-                              title="Editar"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                handleRemove(item)
-                              }}
-                              className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
-                              title="Retirar del contenedor"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {canManageProducts && (
+                              <>
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    handleTransfer(item)
+                                  }}
+                                  className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                                  title="Transferir a otro contenedor"
+                                >
+                                  <ArrowRightLeft className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    handleEdit(item)
+                                  }}
+                                  className="p-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded transition-colors"
+                                  title="Editar"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    handleRemove(item)
+                                  }}
+                                  className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
+                                  title="Retirar del contenedor"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+                            {!canManageProducts && <span className="text-xs text-gray-400">-</span>}
                           </div>
                         </td>
                       </tr>

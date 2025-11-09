@@ -36,7 +36,7 @@ export default function LoginPage() {
         setLoading(false)
       } else if (result?.success) {
         // Login exitoso, redirigir a movimientos
-        router.push('/movimientos')
+        router.push('/movements')
         router.refresh()
       }
     } catch (err) {

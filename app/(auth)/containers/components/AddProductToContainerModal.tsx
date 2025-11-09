@@ -7,6 +7,7 @@ import { useAddProductToContainer } from '@/lib/hooks/use-containers'
 import { ProductFormModal } from '@/app/(auth)/inventory/components/ProductFormModal'
 import { useToast } from '@/lib/contexts/toast-context'
 import { useUpdateUnidadesPorCaja } from '@/lib/hooks/use-bebidas'
+import { useHasPermissions } from '@/lib/hooks/use-permissions'
 
 interface AddProductToContainerModalProps {
   container: any
@@ -23,6 +24,10 @@ export function AddProductToContainerModal({
   const [showCreateProduct, setShowCreateProduct] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
   const [searchTerm, setSearchTerm] = useState('')
+
+  // Verificar permisos
+  const { hasAny } = useHasPermissions(['inventory.create'])
+  const canCreateProduct = hasAny
 
   // Extraer productos únicos del inventario
   const allProducts = Array.from(
@@ -102,13 +107,15 @@ export function AddProductToContainerModal({
               </div>
 
               {/* Botón crear producto */}
-              <button
-                onClick={handleCreateProduct}
-                className="w-full mb-6 flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50 hover:border-blue-400 transition-colors"
-              >
-                <Plus className="w-5 h-5" />
-                <span className="font-medium">Crear Nuevo Producto</span>
-              </button>
+              {canCreateProduct && (
+                <button
+                  onClick={handleCreateProduct}
+                  className="w-full mb-6 flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50 hover:border-blue-400 transition-colors"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span className="font-medium">Crear Nuevo Producto</span>
+                </button>
+              )}
 
               {/* Productos Disponibles */}
               {productosFiltrados.length > 0 ? (
