@@ -44,7 +44,7 @@ const adminMenuItems = [
   { href: '/admin/units', label: 'Unidades', icon: Ruler, permiso: 'admin.units.view' },
   { href: '/admin/roles', label: 'Roles', icon: Shield, permiso: 'admin.roles.view' },
   { href: '/admin/users', label: 'Usuarios', icon: Users, permiso: 'admin.users.view' },
-  { href: '/admin/logs', label: 'Logs', icon: FileText, permiso: 'admin.logs.view' },
+  { href: '/admin/logs', label: 'Bitácora', icon: FileText, permiso: 'admin.logs.view' },
 ]
 
 export function Sidebar({ user }: SidebarProps) {

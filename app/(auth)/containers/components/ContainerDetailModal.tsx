@@ -123,7 +123,7 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
 
         {/* Stats */}
         <div className="p-6 bg-gray-50 border-b border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-white rounded-lg p-4 border border-gray-200">
               <p className="text-sm font-medium text-gray-600">Total Productos</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
@@ -134,45 +134,6 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
               <p className="text-sm font-medium text-gray-600">Valor Total</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
                 S/. {(container.stats?.valorTotal || 0).toFixed(2)}
-              </p>
-            </div>
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <p className="text-sm font-medium text-gray-600">Capacidad</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {container.capacidad ? `${container.capacidad} unid.` : 'Sin límite'}
-              </p>
-            </div>
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <p className="text-sm font-medium text-gray-600">Almacenamiento</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {(() => {
-                  const nuevos = productos.filter((p: any) => {
-                    const storage = getStorageDays(p.created_at)
-                    return storage && storage.dias <= 3
-                  }).length
-                  const antiguos = productos.filter((p: any) => {
-                    const storage = getStorageDays(p.created_at)
-                    return storage && storage.dias >= 30
-                  }).length
-
-                  if (antiguos > 0) {
-                    return (
-                      <span className="flex items-center gap-1">
-                        <span className="text-orange-600">{antiguos}</span>
-                        <span className="text-xs text-gray-500">antiguos</span>
-                      </span>
-                    )
-                  } else if (nuevos > 0) {
-                    return (
-                      <span className="flex items-center gap-1">
-                        <span className="text-blue-600">{nuevos}</span>
-                        <span className="text-xs text-gray-500">nuevos</span>
-                      </span>
-                    )
-                  } else {
-                    return <span className="text-gray-400 text-sm">Normal</span>
-                  }
-                })()}
               </p>
             </div>
           </div>

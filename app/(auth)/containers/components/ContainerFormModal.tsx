@@ -159,28 +159,6 @@ export function ContainerFormModal({ container, onClose, onSuccess }: ContainerF
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Capacidad (Opcional)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={formData.capacidad ?? ''}
-                  onChange={e => {
-                    const value = e.target.value
-                    const numValue = value === '' ? undefined : parseInt(value)
-                    setFormData({
-                      ...formData,
-                      capacidad: !numValue || numValue <= 0 ? undefined : numValue
-                    })
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="0"
-                />
-                <p className="text-xs text-gray-500 mt-1">Capacidad máxima en unidades</p>
-              </div>
             </div>
 
             <div>

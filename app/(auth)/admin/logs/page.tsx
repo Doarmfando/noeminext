@@ -129,7 +129,7 @@ export default function LogsPage() {
   return (
     <div className="p-4 md:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Logs del Sistema</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Bitácora del Sistema</h1>
         <p className="text-sm md:text-base text-gray-600 mt-1">
           {filteredLogs.length} de {logs.length} eventos
           {hasActiveFilters && ' (filtrado)'}
@@ -265,7 +265,7 @@ export default function LogsPage() {
                   <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                     <div className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                      <span className="ml-3">Cargando logs...</span>
+                      <span className="ml-3">Cargando bitácora...</span>
                     </div>
                   </td>
                 </tr>
@@ -315,8 +315,8 @@ export default function LogsPage() {
                 <tr>
                   <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                     {hasActiveFilters
-                      ? 'No se encontraron logs con los filtros aplicados'
-                      : 'No hay logs registrados'}
+                      ? 'No se encontraron registros con los filtros aplicados'
+                      : 'No hay registros en la bitácora'}
                   </td>
                 </tr>
               )}
