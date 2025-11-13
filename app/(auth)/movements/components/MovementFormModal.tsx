@@ -14,6 +14,7 @@ import {
 import { useInventory, useContainers, useProductContainers } from '@/lib/hooks/use-inventory'
 import { useUpdateUnidadesPorCaja } from '@/lib/hooks/use-bebidas'
 import { useToast } from '@/lib/contexts/toast-context'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 
 interface MovementFormModalProps {
   onClose: () => void
@@ -489,74 +490,58 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
           {/* Producto y Contenedor */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Producto *</label>
-              <select
+              <SearchableSelect
+                label="Producto"
                 required
                 disabled={isEditMode}
                 value={formData.producto_id}
-                onChange={e => setFormData({ ...formData, producto_id: e.target.value })}
-                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${isEditMode ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-              >
-                <option value="">Seleccionar producto</option>
-                {products.map((product: any) => (
-                  <option key={product.id} value={product.id}>
-                    {product.nombre}
-                  </option>
-                ))}
-              </select>
+                onChange={value => setFormData({ ...formData, producto_id: value })}
+                options={products}
+                placeholder="Seleccionar producto"
+                getSecondaryText={(product: any) => product.categorias?.nombre || 'Sin categoría'}
+                emptyMessage="No se encontraron productos"
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contenedor *
-              </label>
-              <select
+              <SearchableSelect
+                label="Contenedor"
                 required
                 disabled={isEditMode}
                 value={formData.contenedor_id}
-                onChange={e => setFormData({ ...formData, contenedor_id: e.target.value })}
-                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${isEditMode ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-              >
-                <option value="">Seleccionar contenedor</option>
+                onChange={value => setFormData({ ...formData, contenedor_id: value })}
+                options={containers}
+                placeholder="Seleccionar contenedor"
+                renderOption={(container: any) => {
+                  const isFijo = container.id === contenedorFijoId
+                  const isRecomendado = recomendadosIds.includes(container.id)
 
-                {/* Contenedor Fijo */}
-                {contenedorFijo && (
-                  <>
-                    <option disabled className="font-bold">
-                      ── Contenedor Fijo ──
-                    </option>
-                    <option value={contenedorFijo.id}>{contenedorFijo.nombre} (Fijo)</option>
-                  </>
-                )}
-
-                {/* Contenedores Recomendados */}
-                {contenedoresRecomendados.length > 0 && (
-                  <>
-                    <option disabled className="font-bold">
-                      ── Recomendados ──
-                    </option>
-                    {contenedoresRecomendados.map((container: any) => (
-                      <option key={container.id} value={container.id}>
-                        {container.nombre} (Recomendado)
-                      </option>
-                    ))}
-                  </>
-                )}
-
-                {/* Otros Contenedores */}
-                {otrosContenedores.length > 0 && (
-                  <>
-                    <option disabled className="font-bold">
-                      ── Otros ──
-                    </option>
-                    {otrosContenedores.map((container: any) => (
-                      <option key={container.id} value={container.id}>
+                  return (
+                    <div>
+                      <div className="font-medium text-sm flex items-center gap-2">
                         {container.nombre}
-                      </option>
-                    ))}
-                  </>
-                )}
-              </select>
+                        {isFijo && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Fijo
+                          </span>
+                        )}
+                        {!isFijo && isRecomendado && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            Recomendado
+                          </span>
+                        )}
+                      </div>
+                      {container.tipos_contenedor && (
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {container.tipos_contenedor.nombre}
+                        </div>
+                      )}
+                    </div>
+                  )
+                }}
+                getSecondaryText={(container: any) => container.tipos_contenedor?.nombre || ''}
+                emptyMessage="No se encontraron contenedores"
+              />
               {productContainers?.contenedor_fijo && (
                 <p className="text-xs text-green-600 mt-1">
                   Contenedor fijo seleccionado automáticamente

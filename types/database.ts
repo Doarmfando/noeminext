@@ -322,6 +322,7 @@ export type Database = {
           created_by: string | null
           fecha_movimiento: string | null
           id: string
+          id_lote: string | null
           motivo_movimiento_id: string | null
           numero_documento: string | null
           observacion: string | null
@@ -337,6 +338,7 @@ export type Database = {
           created_by?: string | null
           fecha_movimiento?: string | null
           id?: string
+          id_lote?: string | null
           motivo_movimiento_id?: string | null
           numero_documento?: string | null
           observacion?: string | null
@@ -352,6 +354,7 @@ export type Database = {
           created_by?: string | null
           fecha_movimiento?: string | null
           id?: string
+          id_lote?: string | null
           motivo_movimiento_id?: string | null
           numero_documento?: string | null
           observacion?: string | null
@@ -374,6 +377,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_id_lote_fkey"
+            columns: ["id_lote"]
+            isOneToOne: false
+            referencedRelation: "detalle_contenedor"
             referencedColumns: ["id"]
           },
           {
