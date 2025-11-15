@@ -151,6 +151,44 @@ export function useRealtimeSync() {
 }
 
 /**
+ * Hook para actualización en tiempo real de logs/bitácora
+ * Se actualiza automáticamente cuando hay nuevos eventos
+ */
+export function useRealtimeLogs(queryKeys: string[]) {
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    const supabase = createClient()
+
+    // Subscripción a cambios en log_eventos
+    const logsChannel = supabase
+      .channel('log_eventos_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT', // Solo nos interesan nuevos logs
+          schema: 'public',
+          table: 'log_eventos',
+        },
+        (payload) => {
+          console.log('🔄 Realtime - Nuevo evento en bitácora:', payload.new)
+
+          // Refetch inmediato de logs
+          queryKeys.forEach((key) => {
+            queryClient.invalidateQueries({ queryKey: [key] })
+          })
+        }
+      )
+      .subscribe()
+
+    // Cleanup
+    return () => {
+      supabase.removeChannel(logsChannel)
+    }
+  }, [queryClient, queryKeys])
+}
+
+/**
  * Hook para monitorear presencia de usuarios (opcional)
  * Útil para saber cuántos usuarios están conectados
  */

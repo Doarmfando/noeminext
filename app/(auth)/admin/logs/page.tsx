@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { Tables } from '@/types/database'
 import { Filter, X } from 'lucide-react'
 import { Pagination } from '@/components/ui/pagination'
+import { useRealtimeLogs } from '@/lib/hooks/use-realtime'
 
 type Log = Tables<'log_eventos'> & {
   usuario: { nombre_usuario: string } | null
@@ -41,9 +42,10 @@ export default function LogsPage() {
       if (error) throw error
       return data as Log[]
     },
-    refetchInterval: 30000, // Actualizar cada 30 segundos
-    refetchIntervalInBackground: true, // Continuar actualizando aunque la pestaña esté en segundo plano
   })
+
+  // ✅ Suscripción en tiempo real a nuevos logs
+  useRealtimeLogs(['logs'])
 
   // Obtener usuarios únicos
   const uniqueUsers = useMemo(() => {
