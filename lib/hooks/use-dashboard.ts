@@ -32,7 +32,9 @@ export interface Product {
 export interface CategoryData {
   category: string
   count: number
+  stock: number
   value: number
+  unit: string
 }
 
 async function getDashboardStats(): Promise<DashboardStats> {
