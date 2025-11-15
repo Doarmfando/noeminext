@@ -24,7 +24,8 @@
       "Bash(cat:*)",
       "Bash(supabase --version:*)",
       "Bash(supabase status:*)",
-      "Bash($null)"
+      "Bash($null)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

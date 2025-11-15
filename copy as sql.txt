@@ -1,0 +1,196 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.categorias (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  nombre character varying NOT NULL UNIQUE,
+  descripcion character varying,
+  visible boolean DEFAULT true,
+  CONSTRAINT categorias_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.contenedores (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  codigo character varying UNIQUE,
+  nombre character varying NOT NULL,
+  descripcion character varying,
+  capacidad numeric,
+  tipo_contenedor_id uuid,
+  visible boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  created_by uuid,
+  updated_by uuid,
+  CONSTRAINT contenedores_pkey PRIMARY KEY (id),
+  CONSTRAINT contenedores_tipo_contenedor_id_fkey FOREIGN KEY (tipo_contenedor_id) REFERENCES public.tipos_contenedor(id),
+  CONSTRAINT contenedores_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.usuarios(id),
+  CONSTRAINT contenedores_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.usuarios(id)
+);
+CREATE TABLE public.detalle_contenedor (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  producto_id uuid,
+  contenedor_id uuid,
+  empaquetado character varying,
+  fecha_vencimiento date,
+  estado_producto_id uuid,
+  precio_real_unidad numeric,
+  cantidad numeric,
+  visible boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  created_by uuid,
+  updated_by uuid,
+  CONSTRAINT detalle_contenedor_pkey PRIMARY KEY (id),
+  CONSTRAINT detalle_contenedor_producto_id_fkey FOREIGN KEY (producto_id) REFERENCES public.productos(id),
+  CONSTRAINT detalle_contenedor_contenedor_id_fkey FOREIGN KEY (contenedor_id) REFERENCES public.contenedores(id),
+  CONSTRAINT detalle_contenedor_estado_producto_id_fkey FOREIGN KEY (estado_producto_id) REFERENCES public.estados_producto(id),
+  CONSTRAINT detalle_contenedor_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.usuarios(id),
+  CONSTRAINT detalle_contenedor_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.usuarios(id)
+);
+CREATE TABLE public.estados_inventario (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  nombre character varying NOT NULL UNIQUE,
+  descripcion character varying,
+  visible boolean DEFAULT true,
+  CONSTRAINT estados_inventario_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.estados_producto (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  nombre character varying NOT NULL UNIQUE,
+  descripcion character varying,
+  visible boolean DEFAULT true,
+  CONSTRAINT estados_producto_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.log_eventos (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  usuario_id uuid,
+  fecha_evento timestamp with time zone DEFAULT now(),
+  accion character varying NOT NULL,
+  tabla_afectada character varying,
+  registro_afectado_id uuid,
+  descripcion text,
+  registro_id uuid,
+  CONSTRAINT log_eventos_pkey PRIMARY KEY (id),
+  CONSTRAINT log_eventos_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id)
+);
+CREATE TABLE public.motivos_movimiento (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  tipo_movimiento USER-DEFINED NOT NULL,
+  nombre character varying NOT NULL,
+  descripcion character varying,
+  visible boolean DEFAULT true,
+  CONSTRAINT motivos_movimiento_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.movimientos (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  producto_id uuid,
+  contenedor_id uuid,
+  motivo_movimiento_id uuid,
+  fecha_movimiento timestamp with time zone DEFAULT now(),
+  cantidad numeric,
+  stock_anterior numeric,
+  stock_nuevo numeric,
+  precio_real numeric,
+  numero_documento character varying,
+  observacion character varying,
+  created_by uuid,
+  updated_by uuid,
+  visible boolean NOT NULL DEFAULT true,
+  motivo_anulacion text,
+  fecha_anulacion timestamp with time zone,
+  id_lote uuid,
+  CONSTRAINT movimientos_pkey PRIMARY KEY (id),
+  CONSTRAINT movimientos_producto_id_fkey FOREIGN KEY (producto_id) REFERENCES public.productos(id),
+  CONSTRAINT movimientos_contenedor_id_fkey FOREIGN KEY (contenedor_id) REFERENCES public.contenedores(id),
+  CONSTRAINT movimientos_motivo_movimiento_id_fkey FOREIGN KEY (motivo_movimiento_id) REFERENCES public.motivos_movimiento(id),
+  CONSTRAINT movimientos_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.usuarios(id),
+  CONSTRAINT movimientos_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.usuarios(id),
+  CONSTRAINT movimientos_id_lote_fkey FOREIGN KEY (id_lote) REFERENCES public.detalle_contenedor(id)
+);
+CREATE TABLE public.permisos (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  codigo character varying NOT NULL UNIQUE,
+  nombre character varying NOT NULL,
+  descripcion text,
+  categoria character varying NOT NULL,
+  tipo character varying NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  visible boolean DEFAULT true,
+  CONSTRAINT permisos_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.producto_contenedor (
+  producto_id uuid NOT NULL,
+  contenedor_id uuid NOT NULL,
+  es_fijo boolean DEFAULT false,
+  CONSTRAINT producto_contenedor_pkey PRIMARY KEY (producto_id, contenedor_id),
+  CONSTRAINT producto_contenedor_producto_id_fkey FOREIGN KEY (producto_id) REFERENCES public.productos(id),
+  CONSTRAINT producto_contenedor_contenedor_id_fkey FOREIGN KEY (contenedor_id) REFERENCES public.contenedores(id)
+);
+CREATE TABLE public.productos (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  codigo character varying UNIQUE,
+  nombre character varying NOT NULL,
+  descripcion character varying,
+  categoria_id uuid,
+  unidad_medida_id uuid,
+  precio_estimado numeric,
+  stock_min numeric,
+  estado_inventario_id uuid,
+  visible boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  created_by uuid,
+  updated_by uuid,
+  es_perecedero boolean DEFAULT false,
+  unidades_por_caja integer,
+  CONSTRAINT productos_pkey PRIMARY KEY (id),
+  CONSTRAINT productos_categoria_id_fkey FOREIGN KEY (categoria_id) REFERENCES public.categorias(id),
+  CONSTRAINT productos_unidad_medida_id_fkey FOREIGN KEY (unidad_medida_id) REFERENCES public.unidades_medida(id),
+  CONSTRAINT productos_estado_inventario_id_fkey FOREIGN KEY (estado_inventario_id) REFERENCES public.estados_inventario(id),
+  CONSTRAINT productos_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.usuarios(id),
+  CONSTRAINT productos_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.usuarios(id)
+);
+CREATE TABLE public.rol_permisos (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  rol_id uuid NOT NULL,
+  permiso_id uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT rol_permisos_pkey PRIMARY KEY (id),
+  CONSTRAINT rol_permisos_rol_id_fkey FOREIGN KEY (rol_id) REFERENCES public.roles(id),
+  CONSTRAINT rol_permisos_permiso_id_fkey FOREIGN KEY (permiso_id) REFERENCES public.permisos(id)
+);
+CREATE TABLE public.roles (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  nombre character varying NOT NULL UNIQUE,
+  descripcion character varying,
+  visible boolean DEFAULT true,
+  CONSTRAINT roles_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.tipos_contenedor (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  nombre character varying NOT NULL UNIQUE,
+  descripcion character varying,
+  visible boolean DEFAULT true,
+  CONSTRAINT tipos_contenedor_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.unidades_medida (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  nombre character varying NOT NULL UNIQUE,
+  abreviatura character varying NOT NULL UNIQUE,
+  visible boolean DEFAULT true,
+  CONSTRAINT unidades_medida_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.usuarios (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  nombre_usuario character varying NOT NULL UNIQUE,
+  nombre character varying,
+  clave character varying,
+  email character varying UNIQUE,
+  rol_id uuid,
+  visible boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  auth_user_id uuid,
+  CONSTRAINT usuarios_pkey PRIMARY KEY (id),
+  CONSTRAINT usuarios_rol_id_fkey FOREIGN KEY (rol_id) REFERENCES public.roles(id),
+  CONSTRAINT usuarios_auth_user_id_fkey FOREIGN KEY (auth_user_id) REFERENCES auth.users(id)
+);

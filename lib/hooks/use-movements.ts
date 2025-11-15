@@ -66,7 +66,7 @@ async function getMovements(filters: MovementFilters = {}) {
         nombre,
         tipo_movimiento
       ),
-      lote:detalle_contenedor(
+      detalle_contenedor(
         id,
         empaquetado,
         numero_empaquetados
@@ -423,18 +423,11 @@ async function updateMovement(data: UpdateMovementData) {
       // Si fue una entrada, restar la cantidad del lote
       if (movimientoOriginal.stock_nuevo > movimientoOriginal.stock_anterior) {
         const nuevaCantidad = (loteOriginal.cantidad || 0) - cantidadOriginal
-        if (nuevaCantidad > 0) {
-          await supabase
-            .from('detalle_contenedor')
-            .update({ cantidad: nuevaCantidad })
-            .eq('id', loteOriginal.id)
-        } else {
-          // Eliminar el lote si quedó en 0
-          await supabase
-            .from('detalle_contenedor')
-            .update({ visible: false })
-            .eq('id', loteOriginal.id)
-        }
+        // SIEMPRE actualizar, incluso si queda en 0 (luego se sumará la nueva cantidad)
+        await supabase
+          .from('detalle_contenedor')
+          .update({ cantidad: Math.max(0, nuevaCantidad) })
+          .eq('id', loteOriginal.id)
       }
       // Si fue una salida, sumar la cantidad de vuelta al lote
       else if (movimientoOriginal.stock_nuevo < movimientoOriginal.stock_anterior) {

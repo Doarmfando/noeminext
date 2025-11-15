@@ -92,7 +92,7 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
   useEffect(() => {
     if (isEditMode && movement && formData.cantidad > 0) {
       const cantidad = formData.cantidad
-      const loteDelMovimiento = (movement as any).lote
+      const loteDelMovimiento = (movement as any).detalle_contenedor
 
       // Intentar obtener el empaquetado del lote asociado al movimiento
       let empaquetado = 0
@@ -295,10 +295,22 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
 
       // Enviar actualización
       try {
+        const loteDelMovimiento = (movement as any)?.detalle_contenedor
+        const tieneEmpaquetado = loteDelMovimiento?.empaquetado && parseFloat(loteDelMovimiento.empaquetado) > 0
+
         const updateData: UpdateMovementData = {
           ...formData,
           id: movement.id,
+          lote_id: movement.id_lote || undefined, // Enviar el lote original
         } as UpdateMovementData
+
+        // Si tiene empaquetado, enviar numero_empaquetados para que NO se recalcule
+        if (tieneEmpaquetado) {
+          const empaquetadosEnviados = formData.tipo_movimiento === 'salida' ? empaquetadosASacar : numeroEmpaquetados
+          updateData.numero_empaquetados = empaquetadosEnviados || undefined
+        }
+
+        console.log('🔍 Datos de actualización:', updateData)
 
         await updateMutation.mutateAsync(updateData)
         showSuccess(`Movimiento actualizado correctamente`)
@@ -803,34 +815,99 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
             </select>
           </div>
 
-          {/* Cantidad para EDICIÓN - Campo simple */}
-          {isEditMode && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Cantidad *
-                {selectedProduct && (
-                  <span className="text-xs text-gray-500 ml-1">
-                    ({(selectedProduct as any).unidades_medida?.nombre || 'unidades'})
-                  </span>
-                )}
-              </label>
-              <input
-                type="number"
-                required
-                min="0.01"
-                step="0.01"
-                value={formData.cantidad || ''}
-                onChange={e =>
-                  setFormData({ ...formData, cantidad: parseFloat(e.target.value) || 0 })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="0.00"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Modifica la cantidad del movimiento
-              </p>
-            </div>
-          )}
+          {/* Cantidad para EDICIÓN - Mostrar en empaquetados si tiene lote */}
+          {isEditMode && (() => {
+            const loteDelMovimiento = (movement as any)?.detalle_contenedor
+            const tieneEmpaquetado = loteDelMovimiento?.empaquetado && parseFloat(loteDelMovimiento.empaquetado) > 0
+            const cantidadPorEmpaquetado = tieneEmpaquetado ? parseFloat(loteDelMovimiento.empaquetado) : 0
+
+            // Si tiene empaquetado, mostrar en empaquetados
+            if (tieneEmpaquetado) {
+              const empaquetadosActuales = formData.tipo_movimiento === 'salida' ? empaquetadosASacar : numeroEmpaquetados
+              const maxEmpaquetados = cantidadPorEmpaquetado > 0 && movement.stock_anterior
+                ? Math.floor(movement.stock_anterior / cantidadPorEmpaquetado)
+                : 999
+
+              return (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {esBebida ? 'Número de Cajas' : 'Número de Empaquetados'} *
+                      <span className="text-xs text-gray-500 ml-1">
+                        ({cantidadPorEmpaquetado} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'} c/u)
+                      </span>
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      max={formData.tipo_movimiento === 'salida' ? maxEmpaquetados : undefined}
+                      step="1"
+                      value={empaquetadosActuales || ''}
+                      onChange={e => {
+                        const empaquetados = parseInt(e.target.value) || 0
+                        const nuevaCantidad = empaquetados * cantidadPorEmpaquetado
+
+                        if (formData.tipo_movimiento === 'salida') {
+                          setEmpaquetadosASacar(empaquetados)
+                        } else {
+                          setNumeroEmpaquetados(empaquetados)
+                        }
+
+                        setFormData({ ...formData, cantidad: nuevaCantidad })
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {formData.tipo_movimiento === 'salida' && `Máximo: ${maxEmpaquetados} ${esBebida ? 'cajas' : 'empaquetados'} - `}
+                      Total: {(formData.cantidad || 0).toFixed(2)} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                    </p>
+                  </div>
+
+                  {/* Mostrar cantidad calculada de forma readonly */}
+                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                    <p className="text-xs text-gray-600 mb-1">Cantidad Total Calculada:</p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {(formData.cantidad || 0).toFixed(2)} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      = {empaquetadosActuales || 0} {esBebida ? 'cajas' : 'empaquetados'} × {cantidadPorEmpaquetado} {(selectedProduct as any)?.unidades_medida?.abreviatura || 'unid'}
+                    </p>
+                  </div>
+                </div>
+              )
+            }
+
+            // Si NO tiene empaquetado, mostrar campo de cantidad normal
+            return (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cantidad *
+                  {selectedProduct && (
+                    <span className="text-xs text-gray-500 ml-1">
+                      ({(selectedProduct as any).unidades_medida?.nombre || 'unidades'})
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="0.01"
+                  step="0.01"
+                  value={formData.cantidad || ''}
+                  onChange={e =>
+                    setFormData({ ...formData, cantidad: parseFloat(e.target.value) || 0 })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="0.00"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Modifica la cantidad del movimiento
+                </p>
+              </div>
+            )
+          })()}
 
           {/* Cantidad para SALIDA cuando hay lote seleccionado */}
           {!isEditMode && formData.tipo_movimiento === 'salida' && loteSeleccionado && (() => {
