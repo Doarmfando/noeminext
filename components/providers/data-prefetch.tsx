@@ -16,6 +16,38 @@ export function DataPrefetch() {
 
     // Prefetch de datos que se usan en múltiples páginas
     const prefetchCommonData = async () => {
+      // ✅ NUEVO: Permisos del usuario (usado en Sidebar y todas las páginas)
+      queryClient.prefetchQuery({
+        queryKey: ['user-permisos'],
+        queryFn: async () => {
+          const { data: { user } } = await supabase.auth.getUser()
+          if (!user?.id) return []
+
+          const { data: usuario } = await supabase
+            .from('usuarios')
+            .select('id')
+            .eq('auth_user_id', user.id)
+            .single()
+
+          if (!usuario) return []
+
+          const { data: permisos } = await supabase
+            .from('permisos_usuarios')
+            .select(`
+              permisos (
+                id,
+                codigo,
+                nombre,
+                descripcion
+              )
+            `)
+            .eq('usuario_id', usuario.id)
+
+          return permisos?.map((p: any) => p.permisos).filter(Boolean) || []
+        },
+        staleTime: 5 * 60 * 1000,
+      })
+
       // Categorías
       queryClient.prefetchQuery({
         queryKey: ['categories'],
