@@ -277,7 +277,9 @@ async function getProductsByCategory(): Promise<CategoryData[]> {
       nombre,
       productos!inner(
         id,
-        precio_estimado
+        precio_estimado,
+        unidad_medida_id,
+        unidades_medida(abreviatura)
       )
     `)
     .eq('visible', true)
@@ -301,21 +303,30 @@ async function getProductsByCategory(): Promise<CategoryData[]> {
           .eq('visible', true)
           .eq('contenedores.visible', true)
           .then(res => {
-            // Calcular valor total usando precio_real_unidad, si no existe usar precio_estimado
-            return res.data?.reduce((sum, d) => {
+            const totalStock = res.data?.reduce((sum, d) => sum + (d.cantidad || 0), 0) || 0
+            const totalValue = res.data?.reduce((sum, d) => {
               const precio = d.precio_real_unidad || producto.precio_estimado || 0
               return sum + (d.cantidad || 0) * precio
             }, 0) || 0
+
+            return { stock: totalStock, value: totalValue }
           })
       )
 
-      const allValues = await Promise.all(stockPromises)
-      const totalValue = allValues.reduce((sum, val) => sum + val, 0)
+      const allResults = await Promise.all(stockPromises)
+      const totalStock = allResults.reduce((sum, r) => sum + r.stock, 0)
+      const totalValue = allResults.reduce((sum, r) => sum + r.value, 0)
+
+      // Obtener la unidad de medida más común en la categoría
+      const unidades = productos.map((p: any) => p.unidades_medida?.abreviatura).filter(Boolean)
+      const unidadMasComun = unidades.length > 0 ? unidades[0] : 'unid'
 
       return {
         category: categoria.nombre,
         count: productos.length,
+        stock: totalStock,
         value: totalValue,
+        unit: unidadMasComun,
       }
     })
   )

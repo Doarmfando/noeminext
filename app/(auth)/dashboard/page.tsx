@@ -570,61 +570,32 @@ function CategorySummary({ categoryStats }: { categoryStats: CategoryData[] }) {
 
             return (
               <div key={category.category} className="bg-gray-50 p-4 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center">
-                    <span className="text-lg font-semibold text-gray-800">
-                      {category.category}
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-lg font-semibold text-gray-800">
+                    {category.category}
+                  </span>
+                  {index === 0 && (
+                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full font-medium">
+                      Mayor valor
                     </span>
-                    {index === 0 && (
-                      <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full font-medium">
-                        Mayor valor
-                      </span>
-                    )}
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Stock Total</p>
+                    <p className="text-xl font-bold text-gray-800">
+                      {category.stock?.toFixed(2) || 0} {category.unit || 'unid'}
+                    </p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-gray-800">
+
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Valor Total</p>
+                    <p className="text-xl font-bold text-green-600">
                       S/. {category.value.toFixed(2)}
                     </p>
-                    <p className="text-sm text-gray-600">{category.count} productos</p>
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <div>
-                    <div className="flex justify-between text-sm text-gray-600 mb-1">
-                      <span>Valor ({valuePercentage.toFixed(1)}%)</span>
-                      <span>S/. {category.value.toFixed(2)}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${valuePercentage}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-sm text-gray-600 mb-1">
-                      <span>Cantidad ({countPercentage.toFixed(1)}%)</span>
-                      <span>{category.count} productos</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${countPercentage}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {category.count > 0 && (
-                  <div className="mt-3 text-sm text-gray-600">
-                    Valor promedio por producto:{' '}
-                    <span className="font-medium">
-                      S/. {(category.value / category.count).toFixed(2)}
-                    </span>
-                  </div>
-                )}
               </div>
             )
           })}
