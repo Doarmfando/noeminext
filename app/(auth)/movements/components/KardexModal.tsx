@@ -63,6 +63,8 @@ export function KardexModal({ product, onClose }: KardexModalProps) {
     // Calcular totales
     const totalEntradas = kardex.reduce((sum: number, item: any) => sum + (item.entrada || 0), 0)
     const totalSalidas = kardex.reduce((sum: number, item: any) => sum + (item.salida || 0), 0)
+    const totalValorEntradas = kardex.reduce((sum: number, item: any) => sum + (item.valor_entrada || 0), 0)
+    const totalValorSalidas = kardex.reduce((sum: number, item: any) => sum + (item.valor_salida || 0), 0)
     const saldoFinal = kardex.length > 0 && kardex[kardex.length - 1].saldo != null
       ? kardex[kardex.length - 1].saldo
       : 0
@@ -91,10 +93,12 @@ export function KardexModal({ product, onClose }: KardexModalProps) {
       ['Total Entradas:', totalEntradas.toFixed(2)],
       ['Total Salidas:', totalSalidas.toFixed(2)],
       ['Saldo Final:', saldoFinal.toFixed(2)],
+      ['Valor Total Entradas:', `S/ ${totalValorEntradas.toFixed(2)}`],
+      ['Valor Total Salidas:', `S/ ${totalValorSalidas.toFixed(2)}`],
     ]
 
     // HOJA 2: KARDEX (Tabla de movimientos)
-    const kardexHeaders = ['Fecha', 'Tipo', 'Contenedor Origen', 'Contenedor Destino', 'Entrada', 'Salida', 'Saldo', 'Motivo']
+    const kardexHeaders = ['Fecha', 'Tipo', 'Contenedor Origen', 'Contenedor Destino', 'Entrada', 'Precio Unit.', 'Valor Entrada', 'Salida', 'Precio Unit.', 'Valor Salida', 'Saldo', 'Motivo']
     const kardexRows = kardex.map((item: any) => [
       new Date(item.fecha).toLocaleDateString('es-PE', {
         year: 'numeric',
@@ -107,7 +111,11 @@ export function KardexModal({ product, onClose }: KardexModalProps) {
       item.contenedor_origen?.nombre || '-',
       item.contenedor_destino?.nombre || '-',
       item.entrada != null && item.entrada > 0 ? parseFloat(item.entrada.toFixed(2)) : '',
+      item.entrada != null && item.entrada > 0 ? parseFloat((item.precio_unitario || 0).toFixed(2)) : '',
+      item.valor_entrada != null && item.valor_entrada > 0 ? parseFloat(item.valor_entrada.toFixed(2)) : '',
       item.salida != null && item.salida > 0 ? parseFloat(item.salida.toFixed(2)) : '',
+      item.salida != null && item.salida > 0 ? parseFloat((item.precio_unitario || 0).toFixed(2)) : '',
+      item.valor_salida != null && item.valor_salida > 0 ? parseFloat(item.valor_salida.toFixed(2)) : '',
       parseFloat(item.saldo.toFixed(2)),
       item.motivo || '-',
     ])
@@ -116,7 +124,11 @@ export function KardexModal({ product, onClose }: KardexModalProps) {
     kardexRows.push([
       '', '', '', 'TOTAL:',
       parseFloat(totalEntradas.toFixed(2)),
+      '',
+      parseFloat(totalValorEntradas.toFixed(2)),
       parseFloat(totalSalidas.toFixed(2)),
+      '',
+      parseFloat(totalValorSalidas.toFixed(2)),
       parseFloat(saldoFinal.toFixed(2)),
       ''
     ])
@@ -132,16 +144,20 @@ export function KardexModal({ product, onClose }: KardexModalProps) {
       ['Total Entradas', parseFloat(totalEntradas.toFixed(2))],
       ['Total Salidas', parseFloat(totalSalidas.toFixed(2))],
       ['Saldo Final', parseFloat(saldoFinal.toFixed(2))],
+      ['Valor Total Entradas', parseFloat(totalValorEntradas.toFixed(2))],
+      ['Valor Total Salidas', parseFloat(totalValorSalidas.toFixed(2))],
       [''],
       ['MOVIMIENTOS POR TIPO'],
-      ['Tipo', 'Cantidad', 'Total'],
+      ['Tipo', 'Cantidad', 'Total Unidades', 'Valor Total'],
       ['Entradas',
         kardex.filter((k: any) => k.entrada > 0).length,
-        parseFloat(totalEntradas.toFixed(2))
+        parseFloat(totalEntradas.toFixed(2)),
+        parseFloat(totalValorEntradas.toFixed(2))
       ],
       ['Salidas',
         kardex.filter((k: any) => k.salida > 0).length,
-        parseFloat(totalSalidas.toFixed(2))
+        parseFloat(totalSalidas.toFixed(2)),
+        parseFloat(totalValorSalidas.toFixed(2))
       ],
     ]
 
@@ -161,11 +177,15 @@ export function KardexModal({ product, onClose }: KardexModalProps) {
       { wch: 20 }, // Origen
       { wch: 20 }, // Destino
       { wch: 12 }, // Entrada
+      { wch: 12 }, // Precio Unit.
+      { wch: 14 }, // Valor Entrada
       { wch: 12 }, // Salida
+      { wch: 12 }, // Precio Unit.
+      { wch: 14 }, // Valor Salida
       { wch: 12 }, // Saldo
       { wch: 30 }, // Motivo
     ]
-    wsResumen['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 15 }]
+    wsResumen['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }]
 
     // Agregar las hojas al workbook
     XLSX.utils.book_append_sheet(wb, wsInfo, 'Información')
@@ -271,8 +291,20 @@ export function KardexModal({ product, onClose }: KardexModalProps) {
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase bg-green-50">
                     Entrada
                   </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase bg-green-50">
+                    Precio
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase bg-green-50">
+                    Valor Total
+                  </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase bg-red-50">
                     Salida
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase bg-red-50">
+                    Precio
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase bg-red-50">
+                    Valor Total
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase bg-blue-50">
                     Saldo
@@ -310,8 +342,20 @@ export function KardexModal({ product, onClose }: KardexModalProps) {
                     <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium text-green-600 bg-green-50">
                       {item.entrada != null && item.entrada > 0 ? item.entrada.toFixed(2) : '-'}
                     </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-green-600 bg-green-50">
+                      {item.entrada != null && item.entrada > 0 ? `S/ ${item.precio_unitario.toFixed(2)}` : '-'}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-semibold text-green-700 bg-green-50">
+                      {item.valor_entrada != null && item.valor_entrada > 0 ? `S/ ${item.valor_entrada.toFixed(2)}` : '-'}
+                    </td>
                     <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium text-red-600 bg-red-50">
                       {item.salida != null && item.salida > 0 ? item.salida.toFixed(2) : '-'}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-red-600 bg-red-50">
+                      {item.salida != null && item.salida > 0 ? `S/ ${item.precio_unitario.toFixed(2)}` : '-'}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-semibold text-red-700 bg-red-50">
+                      {item.valor_salida != null && item.valor_salida > 0 ? `S/ ${item.valor_salida.toFixed(2)}` : '-'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-bold text-blue-900 bg-blue-50">
                       {item.saldo != null ? item.saldo.toFixed(2) : '0.00'}
@@ -324,7 +368,7 @@ export function KardexModal({ product, onClose }: KardexModalProps) {
 
                 {kardex.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={12} className="px-6 py-12 text-center text-gray-500">
                       <FileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
                       <p className="text-lg font-medium">No hay movimientos registrados</p>
                       <p className="text-sm mt-1">
@@ -344,8 +388,20 @@ export function KardexModal({ product, onClose }: KardexModalProps) {
                     <td className="px-4 py-3 text-right text-sm text-green-700 bg-green-100">
                       {kardex.reduce((sum: number, item: any) => sum + (item.entrada || 0), 0).toFixed(2)}
                     </td>
+                    <td className="px-4 py-3 text-right text-sm text-green-700 bg-green-100">
+                      -
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm text-green-700 bg-green-100">
+                      S/ {kardex.reduce((sum: number, item: any) => sum + (item.valor_entrada || 0), 0).toFixed(2)}
+                    </td>
                     <td className="px-4 py-3 text-right text-sm text-red-700 bg-red-100">
                       {kardex.reduce((sum: number, item: any) => sum + (item.salida || 0), 0).toFixed(2)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm text-red-700 bg-red-100">
+                      -
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm text-red-700 bg-red-100">
+                      S/ {kardex.reduce((sum: number, item: any) => sum + (item.valor_salida || 0), 0).toFixed(2)}
                     </td>
                     <td className="px-4 py-3 text-right text-sm text-blue-900 bg-blue-100">
                       {kardex.length > 0 && kardex[kardex.length - 1].saldo != null

@@ -142,6 +142,7 @@ async function getKardex(productoId: string, contenedorId?: string, fechaInicio?
       motivos_movimiento(id, nombre, tipo_movimiento)
     `)
     .eq('producto_id', productoId)
+    .eq('visible', true)
     .order('fecha_movimiento', { ascending: true })
 
   if (contenedorId) {
@@ -164,15 +165,20 @@ async function getKardex(productoId: string, contenedorId?: string, fechaInicio?
   const kardexData = (data || []).map((mov: any) => {
     const tipoMovimiento = mov.motivos_movimiento?.tipo_movimiento
     const cantidad = mov.cantidad || 0
+    const precioUnitario = mov.precio_real || 0
 
     let entrada = 0
     let salida = 0
+    let valorEntrada = 0
+    let valorSalida = 0
 
     if (tipoMovimiento === 'entrada') {
       entrada = cantidad
+      valorEntrada = cantidad * precioUnitario
       saldoAcumulado += cantidad
     } else if (tipoMovimiento === 'salida') {
       salida = cantidad
+      valorSalida = cantidad * precioUnitario
       saldoAcumulado -= cantidad
     }
 
@@ -184,6 +190,9 @@ async function getKardex(productoId: string, contenedorId?: string, fechaInicio?
       contenedor_destino: tipoMovimiento === 'entrada' ? mov.contenedores : null,
       entrada,
       salida,
+      precio_unitario: precioUnitario,
+      valor_entrada: valorEntrada,
+      valor_salida: valorSalida,
       saldo: saldoAcumulado,
       motivo: mov.motivos_movimiento?.nombre || mov.observacion,
     }
