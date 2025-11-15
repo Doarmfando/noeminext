@@ -90,36 +90,35 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
 
   // Calcular empaquetados en modo edición cuando se carga el producto
   useEffect(() => {
-    if (isEditMode && movement && selectedProduct && formData.cantidad > 0) {
+    if (isEditMode && movement && formData.cantidad > 0) {
       const cantidad = formData.cantidad
+      const loteDelMovimiento = (movement as any).detalle_contenedor
 
-      // Si es bebida con unidades_por_caja
-      if (selectedProduct.unidades_por_caja && selectedProduct.unidades_por_caja > 0) {
-        const cajas = Math.floor(cantidad / selectedProduct.unidades_por_caja)
-        const unidadesSueltas = cantidad % selectedProduct.unidades_por_caja
+      // Intentar obtener el empaquetado del lote asociado al movimiento
+      let empaquetado = 0
+
+      if (loteDelMovimiento?.empaquetado) {
+        // Usar empaquetado del lote del movimiento
+        empaquetado = parseFloat(loteDelMovimiento.empaquetado)
+      } else if (loteDelMovimiento?.numero_empaquetados && cantidad > 0) {
+        // Calcular empaquetado: cantidad ÷ número de empaquetados
+        empaquetado = cantidad / loteDelMovimiento.numero_empaquetados
+      }
+
+      if (empaquetado > 0) {
+        // Calcular número de empaquetados
+        const numEmpaquetados = Math.floor(cantidad / empaquetado)
 
         if (formData.tipo_movimiento === 'salida') {
-          setEmpaquetadosASacar(cajas)
+          setEmpaquetadosASacar(numEmpaquetados)
+          setUnidadesPorEmpaquetado(empaquetado)
         } else {
-          setNumeroEmpaquetados(cajas)
-        }
-      } else {
-        // Si tiene empaquetado configurado en el lote
-        const lote = productLots.find((l: any) => l.cantidad > 0)
-        if (lote?.empaquetado && lote.empaquetado > 0) {
-          const empaquetados = Math.floor(cantidad / lote.empaquetado)
-
-          if (formData.tipo_movimiento === 'salida') {
-            setEmpaquetadosASacar(empaquetados)
-            setUnidadesPorEmpaquetado(lote.empaquetado)
-          } else {
-            setNumeroEmpaquetados(empaquetados)
-            setUnidadesPorEmpaquetado(lote.empaquetado)
-          }
+          setNumeroEmpaquetados(numEmpaquetados)
+          setUnidadesPorEmpaquetado(empaquetado)
         }
       }
     }
-  }, [isEditMode, movement, selectedProduct, formData.cantidad, formData.tipo_movimiento, productLots])
+  }, [isEditMode, movement, formData.cantidad, formData.tipo_movimiento])
 
   // Obtener contenedores y precio del producto seleccionado
   const { data: productContainers } = useProductContainers(formData.producto_id || '')

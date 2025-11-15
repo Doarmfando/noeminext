@@ -65,6 +65,11 @@ async function getMovements(filters: MovementFilters = {}) {
         id,
         nombre,
         tipo_movimiento
+      ),
+      detalle_contenedor!movimientos_id_lote_fkey(
+        id,
+        empaquetado,
+        numero_empaquetados
       )
     `)
     .eq('visible', true)  // Solo movimientos visibles (no anulados)
