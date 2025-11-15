@@ -160,6 +160,8 @@ export function useRealtimeLogs(queryKeys: string[]) {
   useEffect(() => {
     const supabase = createClient()
 
+    console.log('🔌 Conectando a Realtime para log_eventos...')
+
     // Subscripción a cambios en log_eventos
     const logsChannel = supabase
       .channel('log_eventos_changes')
@@ -173,19 +175,25 @@ export function useRealtimeLogs(queryKeys: string[]) {
         (payload) => {
           console.log('🔄 Realtime - Nuevo evento en bitácora:', payload.new)
 
-          // Refetch inmediato de logs
+          // Refetch FORZADO inmediato de logs (no solo invalidate)
           queryKeys.forEach((key) => {
-            queryClient.invalidateQueries({ queryKey: [key] })
+            queryClient.refetchQueries({
+              queryKey: [key],
+              type: 'active' // Solo queries activas (montadas)
+            })
           })
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('📡 Estado de suscripción Realtime:', status)
+      })
 
     // Cleanup
     return () => {
+      console.log('👋 Desconectando Realtime de log_eventos')
       supabase.removeChannel(logsChannel)
     }
-  }, [queryClient, queryKeys])
+  }, [queryClient])
 }
 
 /**
