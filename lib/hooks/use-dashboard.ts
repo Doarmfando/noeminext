@@ -2,6 +2,12 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import {
+  groupDetallesByProductId,
+  calculateTotalStock,
+  calculateTotalValue,
+  calculateAvgPrice,
+} from '@/lib/utils/query-helpers'
 
 export interface DashboardStats {
   totalProducts: number
@@ -61,28 +67,31 @@ async function getDashboardStats(): Promise<DashboardStats> {
     }
   }
 
-  // Paralelizar consultas de detalles (solo de contenedores visibles)
-  const detallesPromises = productos.map(producto =>
-    supabase
-      .from('detalle_contenedor')
-      .select(`
-        cantidad,
-        fecha_vencimiento,
-        precio_real_unidad,
-        contenedores!inner(visible)
-      `)
-      .eq('producto_id', producto.id)
-      .eq('visible', true)
-      .eq('contenedores.visible', true)
-      .then(res => ({
-        productoId: producto.id,
-        stockMin: producto.stock_min,
-        precioEstimado: producto.precio_estimado || 0,
-        detalles: res.data || [],
-      }))
-  )
+  // ✅ OPTIMIZADO: 1 sola query en lugar de N queries
+  const productIds = productos.map(p => p.id)
+  const { data: todosLosDetalles } = await supabase
+    .from('detalle_contenedor')
+    .select(`
+      producto_id,
+      cantidad,
+      fecha_vencimiento,
+      precio_real_unidad,
+      contenedores!inner(visible)
+    `)
+    .in('producto_id', productIds)
+    .eq('visible', true)
+    .eq('contenedores.visible', true)
 
-  const allDetalles = await Promise.all(detallesPromises)
+  // Agrupar detalles usando helper function
+  const detallesPorProducto = groupDetallesByProductId(todosLosDetalles || [])
+
+  // Crear estructura similar a la anterior para mantener compatibilidad
+  const allDetalles = productos.map(producto => ({
+    productoId: producto.id,
+    stockMin: producto.stock_min,
+    precioEstimado: producto.precio_estimado || 0,
+    detalles: detallesPorProducto[producto.id] || [],
+  }))
 
   let totalValue = 0
   let lowStockItems = 0
@@ -93,12 +102,8 @@ async function getDashboardStats(): Promise<DashboardStats> {
   nextWeek.setDate(nextWeek.getDate() + 7)
 
   for (const { stockMin, precioEstimado, detalles } of allDetalles) {
-    const totalStock = detalles.reduce((sum, d) => sum + (d.cantidad || 0), 0)
-    // Calcular valor total usando precio_real_unidad, si no existe usar precio_estimado
-    const valorTotal = detalles.reduce((sum, d) => {
-      const precio = d.precio_real_unidad || precioEstimado
-      return sum + (d.cantidad || 0) * precio
-    }, 0)
+    const totalStock = calculateTotalStock(detalles)
+    const valorTotal = calculateTotalValue(detalles, precioEstimado)
     totalValue += valorTotal
 
     const expiring = detalles.filter(
@@ -140,35 +145,38 @@ async function getLowStockProducts(): Promise<Product[]> {
 
   if (!productos || productos.length === 0) return []
 
-  const detallesPromises = productos.map(producto =>
-    supabase
-      .from('detalle_contenedor')
-      .select(`
-        cantidad,
-        precio_real_unidad,
-        contenedores!inner(visible)
-      `)
-      .eq('producto_id', producto.id)
-      .eq('visible', true)
-      .eq('contenedores.visible', true)
-      .then(res => ({
-        producto,
-        detalles: res.data || [],
-        totalStock: res.data?.reduce((sum, d) => sum + (d.cantidad || 0), 0) || 0,
-      }))
-  )
+  // ✅ OPTIMIZADO: 1 sola query en lugar de N queries
+  const productIds = productos.map(p => p.id)
+  const { data: todosLosDetalles } = await supabase
+    .from('detalle_contenedor')
+    .select(`
+      producto_id,
+      cantidad,
+      precio_real_unidad,
+      contenedores!inner(visible)
+    `)
+    .in('producto_id', productIds)
+    .eq('visible', true)
+    .eq('contenedores.visible', true)
 
-  const allResults = await Promise.all(detallesPromises)
+  // Agrupar usando helper function
+  const detallesPorProducto = groupDetallesByProductId(todosLosDetalles || [])
+
+  // Crear estructura de resultados
+  const allResults = productos.map(producto => {
+    const detalles = detallesPorProducto[producto.id] || []
+    return {
+      producto,
+      detalles,
+      totalStock: calculateTotalStock(detalles),
+    }
+  })
 
   const lowStockProducts: Product[] = allResults
     .filter(({ producto, totalStock }) => totalStock < (producto.stock_min || 0))
     .map(({ producto, totalStock, detalles }) => {
-      // Calcular valor total usando precio_real_unidad, si no existe usar precio_estimado
-      const totalValue = detalles.reduce((sum, d) => {
-        const precio = d.precio_real_unidad || producto.precio_estimado || 0
-        return sum + (d.cantidad || 0) * precio
-      }, 0)
-      const avgPrice = totalStock > 0 ? totalValue / totalStock : producto.precio_estimado || 0
+      const totalValue = calculateTotalValue(detalles, producto.precio_estimado || 0)
+      const avgPrice = calculateAvgPrice(totalValue, totalStock, producto.precio_estimado || 0)
 
       return {
         id: producto.id,
@@ -203,40 +211,45 @@ async function getExpiringProducts(): Promise<Product[]> {
   const nextWeek = new Date()
   nextWeek.setDate(nextWeek.getDate() + 7)
 
-  const detallesPromises = productos.map(producto =>
-    supabase
-      .from('detalle_contenedor')
-      .select(`
-        cantidad,
-        fecha_vencimiento,
-        precio_real_unidad,
-        contenedores!inner(visible)
-      `)
-      .eq('producto_id', producto.id)
-      .eq('visible', true)
-      .eq('contenedores.visible', true)
-      .not('fecha_vencimiento', 'is', null)
-      .lte('fecha_vencimiento', nextWeek.toISOString().split('T')[0])
-      .gte('fecha_vencimiento', new Date().toISOString().split('T')[0])
-      .then(res => ({ producto, detalles: res.data || [] }))
-  )
+  // ✅ OPTIMIZADO: 1 sola query en lugar de N queries
+  const productIds = productos.map(p => p.id)
+  const { data: todosLosDetalles } = await supabase
+    .from('detalle_contenedor')
+    .select(`
+      producto_id,
+      cantidad,
+      fecha_vencimiento,
+      precio_real_unidad,
+      contenedores!inner(visible)
+    `)
+    .in('producto_id', productIds)
+    .eq('visible', true)
+    .eq('contenedores.visible', true)
+    .not('fecha_vencimiento', 'is', null)
+    .lte('fecha_vencimiento', nextWeek.toISOString().split('T')[0])
+    .gte('fecha_vencimiento', new Date().toISOString().split('T')[0])
 
-  const allResults = await Promise.all(detallesPromises)
+  // Agrupar usando helper function
+  const detallesPorProducto = groupDetallesByProductId(todosLosDetalles || [])
+
+  // Crear estructura de resultados
+  const allResults = productos
+    .filter(producto => detallesPorProducto[producto.id]?.length > 0)
+    .map(producto => ({
+      producto,
+      detalles: detallesPorProducto[producto.id] || [],
+    }))
 
   const expiringProducts: Product[] = allResults
     .filter(({ detalles }) => detalles.length > 0)
     .map(({ producto, detalles }) => {
-      const totalStock = detalles.reduce((sum, d) => sum + (d.cantidad || 0), 0)
+      const totalStock = calculateTotalStock(detalles)
       const nearestExpiry = detalles.map(d => d.fecha_vencimiento).sort()[0]
 
       if (totalStock === 0) return null
 
-      // Calcular valor total usando precio_real_unidad, si no existe usar precio_estimado
-      const totalValue = detalles.reduce((sum, d) => {
-        const precio = d.precio_real_unidad || producto.precio_estimado || 0
-        return sum + (d.cantidad || 0) * precio
-      }, 0)
-      const avgPrice = totalStock > 0 ? totalValue / totalStock : producto.precio_estimado || 0
+      const totalValue = calculateTotalValue(detalles, producto.precio_estimado || 0)
+      const avgPrice = calculateAvgPrice(totalValue, totalStock, producto.precio_estimado || 0)
 
       return {
         id: producto.id,
