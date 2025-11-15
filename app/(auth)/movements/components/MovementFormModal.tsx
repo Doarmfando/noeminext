@@ -494,7 +494,7 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
                 label="Producto"
                 required
                 disabled={isEditMode}
-                value={formData.producto_id}
+                value={formData.producto_id ?? ''}
                 onChange={value => setFormData({ ...formData, producto_id: value })}
                 options={products}
                 placeholder="Seleccionar producto"
@@ -508,7 +508,7 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
                 label="Contenedor"
                 required
                 disabled={isEditMode}
-                value={formData.contenedor_id}
+                value={formData.contenedor_id ?? ''}
                 onChange={value => setFormData({ ...formData, contenedor_id: value })}
                 options={containers}
                 placeholder="Seleccionar contenedor"
@@ -759,7 +759,7 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
             <label className="block text-sm font-medium text-gray-700 mb-1">Motivo *</label>
             <select
               required
-              value={formData.motivo_movimiento_id}
+              value={formData.motivo_movimiento_id ?? ''}
               onChange={e =>
                 setFormData({ ...formData, motivo_movimiento_id: e.target.value })
               }

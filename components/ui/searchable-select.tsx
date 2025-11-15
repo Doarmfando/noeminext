@@ -214,7 +214,7 @@ export function SearchableSelect({
               filteredOptions.map((option, index) => (
                 <div
                   key={option.id}
-                  ref={el => (optionRefs.current[index] = el)}
+                  ref={el => { optionRefs.current[index] = el }}
                   onClick={() => handleSelect(option)}
                   className={`
                     px-4 py-2 cursor-pointer transition-colors

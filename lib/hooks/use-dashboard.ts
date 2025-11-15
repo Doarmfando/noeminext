@@ -585,8 +585,7 @@ async function getBebidasDetalles(): Promise<BebidasDetalles> {
 
   if (!categoria) {
     return {
-      topVendidos: [],
-      productosDisponibles: [],
+      lotes: [],
     }
   }
 
@@ -600,8 +599,7 @@ async function getBebidasDetalles(): Promise<BebidasDetalles> {
 
   if (!productosBebidas || productosBebidas.length === 0) {
     return {
-      topVendidos: [],
-      productosDisponibles: [],
+      lotes: [],
     }
   }
 
