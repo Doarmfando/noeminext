@@ -92,7 +92,7 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
   useEffect(() => {
     if (isEditMode && movement && formData.cantidad > 0) {
       const cantidad = formData.cantidad
-      const loteDelMovimiento = (movement as any).detalle_contenedor
+      const loteDelMovimiento = (movement as any).lote
 
       // Intentar obtener el empaquetado del lote asociado al movimiento
       let empaquetado = 0

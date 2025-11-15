@@ -66,7 +66,7 @@ async function getMovements(filters: MovementFilters = {}) {
         nombre,
         tipo_movimiento
       ),
-      detalle_contenedor!movimientos_id_lote_fkey(
+      lote:detalle_contenedor(
         id,
         empaquetado,
         numero_empaquetados
