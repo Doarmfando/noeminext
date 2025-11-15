@@ -85,11 +85,41 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
         observacion: movement.observacion || '',
         precio_real: movement.precio_real || 0,
       })
-      // Si el movimiento tenía un lote asociado, intentar encontrarlo
-      // (esto es una aproximación, ya que el movimiento no guarda directamente el lote_id)
-      // Podrías necesitar agregar esta relación en la BD si quieres rastrear qué lote específico se usó
     }
   }, [isEditMode, movement])
+
+  // Calcular empaquetados en modo edición cuando se carga el producto
+  useEffect(() => {
+    if (isEditMode && movement && selectedProduct && formData.cantidad > 0) {
+      const cantidad = formData.cantidad
+
+      // Si es bebida con unidades_por_caja
+      if (selectedProduct.unidades_por_caja && selectedProduct.unidades_por_caja > 0) {
+        const cajas = Math.floor(cantidad / selectedProduct.unidades_por_caja)
+        const unidadesSueltas = cantidad % selectedProduct.unidades_por_caja
+
+        if (formData.tipo_movimiento === 'salida') {
+          setEmpaquetadosASacar(cajas)
+        } else {
+          setNumeroEmpaquetados(cajas)
+        }
+      } else {
+        // Si tiene empaquetado configurado en el lote
+        const lote = productLots.find((l: any) => l.cantidad > 0)
+        if (lote?.empaquetado && lote.empaquetado > 0) {
+          const empaquetados = Math.floor(cantidad / lote.empaquetado)
+
+          if (formData.tipo_movimiento === 'salida') {
+            setEmpaquetadosASacar(empaquetados)
+            setUnidadesPorEmpaquetado(lote.empaquetado)
+          } else {
+            setNumeroEmpaquetados(empaquetados)
+            setUnidadesPorEmpaquetado(lote.empaquetado)
+          }
+        }
+      }
+    }
+  }, [isEditMode, movement, selectedProduct, formData.cantidad, formData.tipo_movimiento, productLots])
 
   // Obtener contenedores y precio del producto seleccionado
   const { data: productContainers } = useProductContainers(formData.producto_id || '')
