@@ -90,7 +90,7 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
 
   // Calcular empaquetados en modo edición cuando se carga el producto
   useEffect(() => {
-    if (isEditMode && movement && formData.cantidad > 0) {
+    if (isEditMode && movement && formData.cantidad != null && formData.cantidad > 0) {
       const cantidad = formData.cantidad
       const loteDelMovimiento = (movement as any).detalle_contenedor
 
