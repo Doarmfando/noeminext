@@ -454,7 +454,7 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
   )
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto">
       <style jsx>{`
         /* Ocultar spinners de inputs numéricos */
         input[type='number']::-webkit-inner-spin-button,
@@ -467,17 +467,17 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
           appearance: textfield;
         }
       `}</style>
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">
+      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto my-2 sm:my-4">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">
             {isEditMode ? 'Editar Movimiento' : 'Nuevo Movimiento'}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6">
           {/* Aviso de modo edición */}
           {isEditMode && (
             <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">

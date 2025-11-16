@@ -105,42 +105,42 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 md:p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[95vh] md:max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">{container.nombre}</h2>
-            <p className="text-sm text-gray-600 mt-1">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
+          <div className="min-w-0 flex-1 mr-2">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 truncate">{container.nombre}</h2>
+            <p className="text-xs sm:text-sm text-gray-600 mt-1 truncate">
               {container.tipo_contenedor?.nombre || 'Sin tipo'}
               {container.ubicacion && ` • ${container.ubicacion}`}
             </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-            <X className="w-6 h-6" />
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0">
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>
 
         {/* Stats */}
-        <div className="p-6 bg-gray-50 border-b border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <p className="text-sm font-medium text-gray-600">Total Productos</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+        <div className="p-4 sm:p-6 bg-gray-50 border-b border-gray-200">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Total Productos</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">
                 {container.stats?.totalProductos || 0}
               </p>
             </div>
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <p className="text-sm font-medium text-gray-600">Valor Total</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+            <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Valor Total</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">
                 S/. {(container.stats?.valorTotal || 0).toFixed(2)}
               </p>
             </div>
           </div>
 
           {container.descripcion && (
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-900">
+            <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs sm:text-sm text-blue-900">
                 <strong>Descripción:</strong> {container.descripcion}
               </p>
             </div>
@@ -148,47 +148,48 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
         </div>
 
         {/* Products Table */}
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Productos en este Contenedor</h3>
+        <div className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Productos en este Contenedor</h3>
             {canAddProduct && (
               <button
                 onClick={() => setShowAddProduct(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs sm:text-sm whitespace-nowrap"
               >
                 <Plus className="w-4 h-4" />
-                Agregar Producto
+                <span className="hidden sm:inline">Agregar Producto</span>
+                <span className="sm:hidden">Agregar</span>
               </button>
             )}
           </div>
 
           {productos.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div className="overflow-x-auto -mx-6 md:mx-0">
+              <table className="w-full min-w-[650px]">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-3 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                       Producto
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="hidden sm:table-cell px-3 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                       Categoría
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-3 md:px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                       Cantidad
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="hidden md:table-cell px-3 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                       Empaquetado
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-3 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                       Vencimiento
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                    <th className="hidden lg:table-cell px-3 md:px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                       Almacenamiento
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    <th className="hidden sm:table-cell px-3 md:px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                       Precio
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-3 md:px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                       Acciones
                     </th>
                   </tr>
@@ -209,19 +210,20 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
 
                     return (
                       <tr key={item.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3">
-                          <div className="font-medium text-gray-900">{product.nombre}</div>
+                        <td className="px-3 md:px-4 py-3">
+                          <div className="font-medium text-gray-900 text-sm">{product.nombre}</div>
+                          <div className="text-xs text-gray-500 sm:hidden">{product.categorias?.nombre || '-'}</div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="hidden sm:table-cell px-3 md:px-4 py-3 text-sm text-gray-600">
                           {product.categorias?.nombre || '-'}
                         </td>
-                        <td className="px-4 py-3 text-right">
-                          <span className="font-medium text-gray-900">{item.cantidad || 0}</span>
-                          <span className="text-sm text-gray-500 ml-1">
+                        <td className="px-3 md:px-4 py-3 text-right">
+                          <span className="font-medium text-gray-900 text-sm">{item.cantidad || 0}</span>
+                          <span className="text-xs text-gray-500 ml-1">
                             {unit?.abreviatura || 'unid'}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="hidden md:table-cell px-3 md:px-4 py-3 text-sm text-gray-600">
                           {numEmpaquetados > 0 ? (
                             <div>
                               <div className="font-medium">{numEmpaquetados} paq</div>
@@ -231,7 +233,7 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
                             </div>
                           ) : '-'}
                         </td>
-                        <td className="px-4 py-3 text-sm">
+                        <td className="px-3 md:px-4 py-3 text-sm">
                           {item.fecha_vencimiento ? (
                             (() => {
                               // Parsear fecha sin zona horaria
@@ -290,7 +292,7 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
                             <span className="text-gray-400">-</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="hidden lg:table-cell px-3 md:px-4 py-3 text-center">
                           {(() => {
                             const storageDays = getStorageDays(item.created_at)
                             return storageDays ? (
@@ -302,13 +304,13 @@ export function ContainerDetailModal({ container: initialContainer, onClose }: C
                             )
                           })()}
                         </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="text-sm text-gray-900">
+                        <td className="hidden sm:table-cell px-3 md:px-4 py-3 text-right">
+                          <div className="text-xs text-gray-600">
                             S/. {precioUnitario.toFixed(2)}/{unit?.abreviatura || 'u'}
                           </div>
-                          <div className="font-medium text-gray-900">S/. {valorTotal.toFixed(2)}</div>
+                          <div className="text-sm font-medium text-gray-900">S/. {valorTotal.toFixed(2)}</div>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 md:px-4 py-3">
                           <div className="flex items-center justify-center gap-1">
                             {canTransferProduct && (
                               <button
