@@ -25,14 +25,14 @@ export function DataPrefetch() {
 
           const { data: usuario } = await supabase
             .from('usuarios')
-            .select('id')
+            .select('id, rol_id')
             .eq('auth_user_id', user.id)
             .single()
 
-          if (!usuario) return []
+          if (!usuario?.rol_id) return []
 
           const { data: permisos } = await supabase
-            .from('permisos_usuarios')
+            .from('rol_permisos')
             .select(`
               permisos (
                 id,
@@ -41,7 +41,7 @@ export function DataPrefetch() {
                 descripcion
               )
             `)
-            .eq('usuario_id', usuario.id)
+            .eq('rol_id', usuario.rol_id)
 
           return permisos?.map((p: any) => p.permisos).filter(Boolean) || []
         },

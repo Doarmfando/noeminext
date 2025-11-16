@@ -22,6 +22,7 @@ const LeftPanel: React.FC<LeftPanelProps> = ({
           src={panelImage}
           alt={altText}
           fill
+          sizes="(max-width: 768px) 100vw, 16vw"
           className="object-cover"
           priority
         />

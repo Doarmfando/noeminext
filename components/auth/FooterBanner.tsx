@@ -31,6 +31,7 @@ const FooterBanner: React.FC<FooterBannerProps> = ({
               src={logo}
               alt={logoAlt}
               fill
+              sizes="24px"
               className="object-cover"
             />
           </div>

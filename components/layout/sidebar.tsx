@@ -96,6 +96,7 @@ export function Sidebar({ user }: SidebarProps) {
                 src="/images/logo2.png"
                 alt="Logo Noemí"
                 fill
+                sizes="40px"
                 className="object-contain"
               />
             </div>

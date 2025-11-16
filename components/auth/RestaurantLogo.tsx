@@ -12,6 +12,7 @@ const RestaurantLogo: React.FC = () => {
           src="/images/logo-blanco.png"
           alt="Restaurant Logo"
           fill
+          sizes="160px"
           className="object-contain"
           priority
         />
@@ -23,6 +24,7 @@ const RestaurantLogo: React.FC = () => {
           src="/images/logo2.png"
           alt="Restaurant Brand"
           fill
+          sizes="144px"
           className="object-contain"
         />
       </div>
