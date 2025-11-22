@@ -48,6 +48,58 @@ export async function resetUserPassword(userId: string, newPassword: string) {
   }
 }
 
+export async function deleteUserCompletely(userId: string) {
+  try {
+    const adminClient = getAdminClient()
+    const supabase = await createClient()
+
+    // 1. Obtener datos del usuario para el log
+    const { data: usuario } = await supabase
+      .from('usuarios')
+      .select('nombre_usuario, nombre, auth_user_id')
+      .eq('id', userId)
+      .single()
+
+    if (!usuario) {
+      return { error: 'Usuario no encontrado' }
+    }
+
+    // 2. Eliminar de la tabla usuarios primero
+    const { error: dbError } = await supabase
+      .from('usuarios')
+      .delete()
+      .eq('id', userId)
+
+    if (dbError) {
+      console.error('Error eliminando usuario de BD:', dbError)
+      return { error: `Error al eliminar usuario de base de datos: ${dbError.message}` }
+    }
+
+    // 3. Eliminar de Supabase Auth (usar auth_user_id si existe, sino usar el id)
+    const authId = usuario.auth_user_id || userId
+    const { error: authError } = await adminClient.auth.admin.deleteUser(authId)
+
+    if (authError) {
+      console.error('Error eliminando usuario de Auth:', authError)
+      // No retornamos error aquí porque el usuario ya fue eliminado de la BD
+      // Solo logueamos el error
+    }
+
+    return {
+      data: {
+        nombre_usuario: usuario.nombre_usuario,
+        nombre: usuario.nombre
+      },
+      error: null
+    }
+  } catch (error) {
+    console.error('Error en deleteUserCompletely:', error)
+    return {
+      error: error instanceof Error ? error.message : 'Error desconocido al eliminar usuario'
+    }
+  }
+}
+
 export async function createUserInAuth(userData: {
   nombre_usuario: string
   email: string
@@ -59,7 +111,44 @@ export async function createUserInAuth(userData: {
     const adminClient = getAdminClient()
     const supabase = await createClient()
 
-    // 1. Crear usuario en Supabase Auth
+    // 0. Validar que el rol sea obligatorio
+    if (!userData.rol_id) {
+      return { error: 'Debes asignar un rol al usuario' }
+    }
+
+    // 1. Verificar que el nombre de usuario no exista
+    const { data: existingUser, error: checkError } = await supabase
+      .from('usuarios')
+      .select('id, nombre_usuario')
+      .eq('nombre_usuario', userData.nombre_usuario.trim())
+      .maybeSingle()
+
+    if (checkError) {
+      console.error('Error verificando nombre de usuario:', checkError)
+      return { error: 'Error al verificar disponibilidad del nombre de usuario' }
+    }
+
+    if (existingUser) {
+      return { error: `El nombre de usuario "${userData.nombre_usuario}" ya está en uso. Por favor elige otro.` }
+    }
+
+    // 2. Verificar que el email no exista
+    const { data: existingEmail, error: emailCheckError } = await supabase
+      .from('usuarios')
+      .select('id, email')
+      .eq('email', userData.email.trim().toLowerCase())
+      .maybeSingle()
+
+    if (emailCheckError) {
+      console.error('Error verificando email:', emailCheckError)
+      return { error: 'Error al verificar disponibilidad del email' }
+    }
+
+    if (existingEmail) {
+      return { error: `El email "${userData.email}" ya está registrado. Cada usuario debe tener un email único.` }
+    }
+
+    // 3. Crear usuario en Supabase Auth
     const { data: authUser, error: authError } = await adminClient.auth.admin.createUser({
       email: userData.email.trim().toLowerCase(),
       password: userData.clave,
@@ -81,7 +170,7 @@ export async function createUserInAuth(userData: {
       return { error: 'No se pudo crear el usuario en Auth' }
     }
 
-    // 2. Crear registro en tabla usuarios (usando el mismo ID de Auth)
+    // 4. Crear registro en tabla usuarios (usando el mismo ID de Auth)
     const { data: dbUser, error: dbError } = await supabase
       .from('usuarios')
       .insert({

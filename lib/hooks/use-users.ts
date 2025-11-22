@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Tables } from '@/types/database'
 import { logCreate, logUpdate, logDelete } from '@/lib/utils/logger'
-import { createUserInAuth } from '@/lib/auth/user-actions'
+import { createUserInAuth, deleteUserCompletely } from '@/lib/auth/user-actions'
 
 type User = Tables<'usuarios'>
 
@@ -128,30 +128,24 @@ export function useCreateUser() {
 
 export function useDeleteUser() {
   const queryClient = useQueryClient()
-  const supabase = createClient()
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // Obtener el nombre del usuario para el log
-      const { data: usuario } = await supabase
-        .from('usuarios')
-        .select('nombre_usuario, nombre')
-        .eq('id', id)
-        .single()
+      // Usar la server action para eliminar de BD y Auth
+      const result = await deleteUserCompletely(id)
 
-      const { error } = await supabase
-        .from('usuarios')
-        .update({ visible: false })
-        .eq('id', id)
-
-      if (error) throw error
+      if (result.error) {
+        throw new Error(result.error)
+      }
 
       // Registrar en log
       await logDelete(
         'usuarios',
         id,
-        `Usuario eliminado: ${usuario?.nombre_usuario || id} (${usuario?.nombre || 'Sin nombre'})`
+        `Usuario eliminado permanentemente: ${result.data?.nombre_usuario || id} (${result.data?.nombre || 'Sin nombre'})`
       )
+
+      return result.data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY })

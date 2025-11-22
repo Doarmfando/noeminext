@@ -30,7 +30,12 @@ export default function UsersPage() {
   const [resettingPassword, setResettingPassword] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
-  const visibleUsers = users.filter((u) => u.visible)
+  // Mostrar todos los usuarios (activos primero, luego inactivos)
+  const sortedUsers = [...users].sort((a, b) => {
+    if (a.visible === b.visible) return a.nombre_usuario.localeCompare(b.nombre_usuario)
+    return a.visible ? -1 : 1
+  })
+  const activeCount = users.filter((u) => u.visible).length
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,6 +58,11 @@ export default function UsersPage() {
 
         if (!formData.email || !formData.email.trim()) {
           alert('El email es obligatorio para crear un usuario')
+          return
+        }
+
+        if (!formData.rol_id) {
+          alert('Debes asignar un rol al usuario')
           return
         }
 
@@ -94,9 +104,17 @@ export default function UsersPage() {
     setShowForm(true)
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('¿Eliminar este usuario?')) return
-    await deleteMutation.mutateAsync(id)
+  const handleDelete = async (user: User) => {
+    const confirmMessage = `¿Estás seguro de ELIMINAR PERMANENTEMENTE al usuario "${user.nombre_usuario}"?\n\nEsta acción NO se puede deshacer. El usuario será eliminado de la base de datos y no podrá volver a iniciar sesión.\n\nSi solo quieres desactivarlo temporalmente, usa el botón de desactivar (ojo).`
+
+    if (!confirm(confirmMessage)) return
+
+    try {
+      await deleteMutation.mutateAsync(user.id)
+      alert('Usuario eliminado permanentemente')
+    } catch (error: any) {
+      alert(error.message || 'Error al eliminar usuario')
+    }
   }
 
   const handleResetPassword = async (user: User) => {
@@ -139,7 +157,7 @@ export default function UsersPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Usuarios</h1>
-          <p className="text-sm md:text-base text-gray-600 mt-1">{visibleUsers.length} usuarios activos</p>
+          <p className="text-sm md:text-base text-gray-600 mt-1">{activeCount} usuarios activos de {users.length} total</p>
         </div>
         <button
           onClick={handleCreate}
@@ -176,7 +194,7 @@ export default function UsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {isLoading && visibleUsers.length === 0 && (
+              {isLoading && sortedUsers.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                     <div className="flex items-center justify-center">
@@ -186,7 +204,7 @@ export default function UsersPage() {
                   </td>
                 </tr>
               )}
-              {!isLoading && visibleUsers.length === 0 && (
+              {!isLoading && sortedUsers.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                     <p className="text-lg font-medium">No hay usuarios</p>
@@ -194,7 +212,7 @@ export default function UsersPage() {
                   </td>
                 </tr>
               )}
-              {visibleUsers.map((user) => (
+              {sortedUsers.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50">
                   <td className="px-3 md:px-6 py-4 whitespace-nowrap font-medium text-gray-900 text-sm">
                     {user.nombre_usuario}
@@ -211,7 +229,7 @@ export default function UsersPage() {
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                         user.visible
                           ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
+                          : 'bg-red-100 text-red-800'
                       }`}
                     >
                       {user.visible ? 'Activo' : 'Inactivo'}
@@ -242,9 +260,9 @@ export default function UsersPage() {
                         {user.visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                       <button
-                        onClick={() => handleDelete(user.id)}
+                        onClick={() => handleDelete(user)}
                         className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
-                        title="Eliminar usuario"
+                        title="Eliminar usuario permanentemente"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -353,19 +371,27 @@ export default function UsersPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Rol {!editingUser && <span className="text-red-500">*</span>}
+                </label>
                 <select
+                  required={!editingUser}
                   value={formData.rol_id}
                   onChange={(e) => setFormData({ ...formData, rol_id: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">Sin rol</option>
+                  <option value="">Seleccionar rol</option>
                   {roles.map((rol) => (
                     <option key={rol.id} value={rol.id}>
                       {rol.nombre}
                     </option>
                   ))}
                 </select>
+                {!editingUser && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    El rol es obligatorio para crear un usuario
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-4">
