@@ -350,10 +350,19 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
       return
     }
 
-    // Validación 3: Selección de lote para salida
-    if (formData.tipo_movimiento === 'salida' && productLots.length > 0 && !loteSeleccionado) {
-      showError('Por favor selecciona un lote para realizar la salida')
-      return
+    // Validación 3: Para salida, verificar que hay stock disponible
+    if (formData.tipo_movimiento === 'salida') {
+      // Si no hay lotes, no hay stock
+      if (productLots.length === 0) {
+        showError('No hay stock disponible para realizar la salida')
+        return
+      }
+
+      // Si hay lotes pero no se seleccionó uno
+      if (!loteSeleccionado) {
+        showError('Por favor selecciona un lote para realizar la salida')
+        return
+      }
     }
 
     // Validación 4: Stock suficiente en salidas
@@ -646,6 +655,18 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
                   </p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Mensaje cuando no hay stock para salida */}
+          {!isEditMode && formData.tipo_movimiento === 'salida' && formData.producto_id && formData.contenedor_id && productLots.length === 0 && (
+            <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4">
+              <p className="text-sm font-semibold text-red-900 mb-1">
+                No hay stock disponible
+              </p>
+              <p className="text-xs text-red-700">
+                No hay stock disponible para realizar la salida de este producto en el contenedor seleccionado.
+              </p>
             </div>
           )}
 
@@ -1725,8 +1746,12 @@ export function MovementFormModal({ onClose, onSuccess, movement }: MovementForm
             </button>
             <button
               type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              disabled={
+                createMutation.isPending ||
+                updateMutation.isPending ||
+                (!isEditMode && formData.tipo_movimiento === 'salida' && productLots.length === 0)
+              }
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {createMutation.isPending || updateMutation.isPending
                 ? (isEditMode ? 'Actualizando...' : 'Registrando...')
