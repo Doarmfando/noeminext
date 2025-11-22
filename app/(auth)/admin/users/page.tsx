@@ -105,7 +105,7 @@ export default function UsersPage() {
   }
 
   const handleDelete = async (user: User) => {
-    const confirmMessage = `¿Estás seguro de ELIMINAR PERMANENTEMENTE al usuario "${user.nombre_usuario}"?\n\nEsta acción NO se puede deshacer. El usuario será eliminado de la base de datos y no podrá volver a iniciar sesión.\n\nSi solo quieres desactivarlo temporalmente, usa el botón de desactivar (ojo).`
+    const confirmMessage = `¿Estás seguro de ELIMINAR PERMANENTEMENTE al usuario "${user.nombre_usuario}"?\n\nEsta acción NO se puede deshacer.`
 
     if (!confirm(confirmMessage)) return
 
