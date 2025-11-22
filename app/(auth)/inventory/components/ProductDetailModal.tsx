@@ -108,8 +108,8 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
             </div>
           </div>
 
-          {/* Vencimiento, Almacenamiento y Valor */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Vencimiento y Valor */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Fecha de Vencimiento */}
             <div className="bg-orange-50 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
@@ -151,41 +151,6 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
                   </p>
                 )
               })()}
-            </div>
-
-            {/* Tiempo de Almacenamiento */}
-            <div className="bg-blue-50 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <Package className="w-5 h-5" />
-                Almacenamiento
-              </h3>
-              {product.created_at ? (() => {
-                const fechaIngreso = new Date(product.created_at)
-                const hoy = new Date()
-                hoy.setHours(0, 0, 0, 0)
-                fechaIngreso.setHours(0, 0, 0, 0)
-                const diffTime = hoy.getTime() - fechaIngreso.getTime()
-                const diasAlmacenado = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-
-                return (
-                  <div>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {diasAlmacenado >= 0 ? diasAlmacenado : 0} día{diasAlmacenado !== 1 ? 's' : ''}
-                    </p>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Desde: {formatDate(product.created_at)}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-2">
-                      {diasAlmacenado >= 0 ? diasAlmacenado : 0} días almacenado
-                    </p>
-                  </div>
-                )
-              })() : (
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">0 días</p>
-                  <p className="text-xs text-gray-500 mt-2">0 días almacenado</p>
-                </div>
-              )}
             </div>
 
             {/* Valor Total */}

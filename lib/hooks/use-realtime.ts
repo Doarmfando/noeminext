@@ -35,28 +35,59 @@ export function useRealtimeSync() {
           table: 'detalle_contenedor',
         },
         (payload) => {
-          console.log('🔄 Realtime - detalle_contenedor changed:', payload.eventType)
+          console.log('🔄 Realtime - detalle_contenedor changed:', payload.eventType, payload)
+
+          // Primero invalidamos todas las queries relacionadas (las marca como stale)
+          queryClient.invalidateQueries({
+            predicate: (query) => {
+              const key = query.queryKey[0]
+              return (
+                key === 'containers-with-products' ||
+                key === 'inventory' ||
+                key === 'dashboard-stats' ||
+                key === 'low-stock-products' ||
+                key === 'expiring-products' ||
+                key === 'category-stats' ||
+                key === 'bebidas-stats' ||
+                key === 'bebidas-detalles' ||
+                key === 'container-stats' ||
+                key === 'product-container-batches' ||
+                key === 'product-container-price' ||
+                key === 'product-lots' ||
+                key === 'kardex' ||
+                key === 'movements'
+              )
+            }
+          })
 
           // Refetch forzado para actualización inmediata en todos los usuarios
-          // Nota: usamos predicate para hacer match de TODAS las queries que empiecen con 'containers-with-products'
-          // sin importar los filtros que tengan
           queryClient.refetchQueries({
             predicate: (query) => {
               const key = query.queryKey[0]
-              return key === 'containers-with-products'
+              return (
+                key === 'containers-with-products' ||
+                key === 'inventory' ||
+                key === 'dashboard-stats' ||
+                key === 'low-stock-products' ||
+                key === 'expiring-products' ||
+                key === 'category-stats' ||
+                key === 'bebidas-stats' ||
+                key === 'bebidas-detalles' ||
+                key === 'container-stats' ||
+                key === 'product-container-batches' ||
+                key === 'product-container-price' ||
+                key === 'product-lots' ||
+                key === 'kardex' ||
+                key === 'movements'
+              )
             },
             type: 'active' // Solo refetch queries activas (montadas)
           })
-          queryClient.refetchQueries({
-            predicate: (query) => {
-              const key = query.queryKey[0]
-              return key === 'inventory'
-            },
-            type: 'active'
-          })
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('📡 Realtime detalle_contenedor status:', status)
+      })
 
     channels.push(detalleChannel)
 
@@ -77,13 +108,21 @@ export function useRealtimeSync() {
           queryClient.refetchQueries({
             predicate: (query) => {
               const key = query.queryKey[0]
-              return key === 'containers-with-products' || key === 'containers'
+              return (
+                key === 'containers-with-products' ||
+                key === 'containers' ||
+                key === 'container-stats' ||
+                key === 'dashboard-stats' ||
+                key === 'inventory'
+              )
             },
             type: 'active'
           })
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('📡 Realtime contenedores status:', status)
+      })
 
     channels.push(contenedoresChannel)
 
@@ -104,13 +143,26 @@ export function useRealtimeSync() {
           queryClient.refetchQueries({
             predicate: (query) => {
               const key = query.queryKey[0]
-              return key === 'inventory' || key === 'products' || key === 'containers-with-products'
+              return (
+                key === 'inventory' ||
+                key === 'products' ||
+                key === 'containers-with-products' ||
+                key === 'dashboard-stats' ||
+                key === 'low-stock-products' ||
+                key === 'expiring-products' ||
+                key === 'category-stats' ||
+                key === 'bebidas-stats' ||
+                key === 'bebidas-detalles' ||
+                key === 'product-containers'
+              )
             },
             type: 'active'
           })
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('📡 Realtime productos status:', status)
+      })
 
     channels.push(productosChannel)
 
@@ -120,26 +172,121 @@ export function useRealtimeSync() {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT', // Solo INSERT, los movimientos no se editan
+          event: '*', // INSERT, UPDATE, DELETE - para edición de movimientos
           schema: 'public',
           table: 'movimientos',
         },
         (payload) => {
-          console.log('🔄 Realtime - movimiento registrado:', payload.eventType)
+          console.log('🔄 Realtime - movimiento changed:', payload.eventType, payload)
 
-          // Refetch forzado para actualización inmediata
+          // Los movimientos SIEMPRE afectan el stock, así que invalidamos TODO
+          // Primero invalidamos (marca como stale)
+          queryClient.invalidateQueries({
+            predicate: (query) => {
+              const key = query.queryKey[0]
+              return (
+                key === 'movements' ||
+                key === 'kardex' ||
+                key === 'dashboard-stats' ||
+                key === 'inventory' ||
+                key === 'containers-with-products' ||
+                key === 'low-stock-products' ||
+                key === 'expiring-products' ||
+                key === 'bebidas-stats' ||
+                key === 'bebidas-detalles' ||
+                key === 'container-stats' ||
+                key === 'product-lots' ||
+                key === 'product-container-batches'
+              )
+            }
+          })
+
+          // Luego refetch forzado de las queries activas
           queryClient.refetchQueries({
             predicate: (query) => {
               const key = query.queryKey[0]
-              return key === 'movements'
+              return (
+                key === 'movements' ||
+                key === 'kardex' ||
+                key === 'dashboard-stats' ||
+                key === 'inventory' ||
+                key === 'containers-with-products' ||
+                key === 'low-stock-products' ||
+                key === 'expiring-products' ||
+                key === 'bebidas-stats' ||
+                key === 'bebidas-detalles' ||
+                key === 'container-stats' ||
+                key === 'product-lots' ||
+                key === 'product-container-batches'
+              )
             },
             type: 'active'
           })
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('📡 Realtime movimientos status:', status)
+      })
 
     channels.push(movimientosChannel)
+
+    // Subscripción a categorías
+    const categoriasChannel = supabase
+      .channel('categorias_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'categorias',
+        },
+        (payload) => {
+          console.log('🔄 Realtime - categorias changed:', payload.eventType)
+
+          queryClient.refetchQueries({
+            predicate: (query) => {
+              const key = query.queryKey[0]
+              return key === 'categories' || key === 'inventory' || key === 'products'
+            },
+            type: 'active'
+          })
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Realtime categorias status:', status)
+      })
+
+    channels.push(categoriasChannel)
+
+    // Subscripción a unidades de medida
+    const unidadesChannel = supabase
+      .channel('unidades_medida_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'unidades_medida',
+        },
+        (payload) => {
+          console.log('🔄 Realtime - unidades_medida changed:', payload.eventType)
+
+          queryClient.refetchQueries({
+            predicate: (query) => {
+              const key = query.queryKey[0]
+              return key === 'units' || key === 'inventory' || key === 'products'
+            },
+            type: 'active'
+          })
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Realtime unidades_medida status:', status)
+      })
+
+    channels.push(unidadesChannel)
+
+    console.log('🔌 Realtime: Todas las suscripciones iniciadas')
 
     // Cleanup: Desuscribirse al desmontar
     return () => {
